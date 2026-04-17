@@ -1,0 +1,8 @@
+public final class com/yasincidem/blockcanvas/core/BlockCanvasVersion {
+	public static final field CURRENT Ljava/lang/String;
+	public static final field INSTANCE Lcom/yasincidem/blockcanvas/core/BlockCanvasVersion;
+}
+
+public abstract interface annotation class com/yasincidem/blockcanvas/core/ExperimentalBlockCanvasApi : java/lang/annotation/Annotation {
+}
+

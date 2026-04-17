@@ -1,4 +1,4 @@
-rootProject.name = "KMP-App-Template"
+rootProject.name = "compose-block-canvas"
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {
@@ -28,4 +28,6 @@ dependencyResolutionManagement {
     }
 }
 
+include(":core")
+include(":ui")
 include(":composeApp")
