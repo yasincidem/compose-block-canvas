@@ -6,3 +6,51 @@ public final class com/yasincidem/blockcanvas/core/BlockCanvasVersion {
 public abstract interface annotation class com/yasincidem/blockcanvas/core/ExperimentalBlockCanvasApi : java/lang/annotation/Annotation {
 }
 
+public final class com/yasincidem/blockcanvas/core/geometry/Offset {
+	public static final field Companion Lcom/yasincidem/blockcanvas/core/geometry/Offset$Companion;
+	public fun <init> (FF)V
+	public final fun component1 ()F
+	public final fun component2 ()F
+	public final fun copy (FF)Lcom/yasincidem/blockcanvas/core/geometry/Offset;
+	public static synthetic fun copy$default (Lcom/yasincidem/blockcanvas/core/geometry/Offset;FFILjava/lang/Object;)Lcom/yasincidem/blockcanvas/core/geometry/Offset;
+	public final fun distanceTo (Lcom/yasincidem/blockcanvas/core/geometry/Offset;)F
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getX ()F
+	public final fun getY ()F
+	public static final fun getZero ()Lcom/yasincidem/blockcanvas/core/geometry/Offset;
+	public fun hashCode ()I
+	public final fun minus (Lcom/yasincidem/blockcanvas/core/geometry/Offset;)Lcom/yasincidem/blockcanvas/core/geometry/Offset;
+	public final fun plus (Lcom/yasincidem/blockcanvas/core/geometry/Offset;)Lcom/yasincidem/blockcanvas/core/geometry/Offset;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/yasincidem/blockcanvas/core/geometry/Offset$Companion {
+	public final fun getZero ()Lcom/yasincidem/blockcanvas/core/geometry/Offset;
+}
+
+public final class com/yasincidem/blockcanvas/core/geometry/Rect {
+	public static final field Companion Lcom/yasincidem/blockcanvas/core/geometry/Rect$Companion;
+	public fun <init> (FFFF)V
+	public final fun component1 ()F
+	public final fun component2 ()F
+	public final fun component3 ()F
+	public final fun component4 ()F
+	public final fun contains (Lcom/yasincidem/blockcanvas/core/geometry/Offset;)Z
+	public final fun copy (FFFF)Lcom/yasincidem/blockcanvas/core/geometry/Rect;
+	public static synthetic fun copy$default (Lcom/yasincidem/blockcanvas/core/geometry/Rect;FFFFILjava/lang/Object;)Lcom/yasincidem/blockcanvas/core/geometry/Rect;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBottom ()F
+	public final fun getHeight ()F
+	public final fun getLeft ()F
+	public final fun getRight ()F
+	public final fun getTop ()F
+	public final fun getWidth ()F
+	public static final fun getZero ()Lcom/yasincidem/blockcanvas/core/geometry/Rect;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/yasincidem/blockcanvas/core/geometry/Rect$Companion {
+	public final fun getZero ()Lcom/yasincidem/blockcanvas/core/geometry/Rect;
+}
+
