@@ -5,6 +5,7 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateMap
@@ -62,10 +63,10 @@ public class BlockCanvasState(
         private set
 
     /** Stack of past states for [undo]. */
-    private val undoStack = mutableListOf<CanvasState>()
+    private val undoStack = mutableStateListOf<CanvasState>()
 
     /** Stack of reverted states for [redo]. */
-    private val redoStack = mutableListOf<CanvasState>()
+    private val redoStack = mutableStateListOf<CanvasState>()
 
     /** Whether an [undo] operation can be performed. */
     public val canUndo: Boolean get() = undoStack.isNotEmpty()
