@@ -53,6 +53,14 @@ public data class Offset(
     public fun distanceTo(other: Offset): Float =
         hypot(x - other.x, y - other.y)
 
+    /** Scales both components by [factor]. */
+    public operator fun times(factor: Float): Offset =
+        Offset(x * factor, y * factor)
+
+    /** Divides both components by [divisor]. */
+    public operator fun div(divisor: Float): Offset =
+        Offset(x / divisor, y / divisor)
+
     public companion object {
         /** The origin `(0, 0)`. */
         @JvmStatic

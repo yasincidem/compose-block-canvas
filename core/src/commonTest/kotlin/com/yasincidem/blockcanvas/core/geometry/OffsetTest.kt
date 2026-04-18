@@ -37,4 +37,25 @@ class OffsetTest {
         val b = Offset(7f, -1f)
         assertEquals(a.distanceTo(b), b.distanceTo(a))
     }
+
+    @Test
+    fun times_scales_both_components() {
+        assertEquals(Offset(6f, 15f), Offset(2f, 5f) * 3f)
+    }
+
+    @Test
+    fun times_by_zero_gives_zero_offset() {
+        assertEquals(Offset.Zero, Offset(100f, 50f) * 0f)
+    }
+
+    @Test
+    fun div_divides_both_components() {
+        assertEquals(Offset(3f, 2f), Offset(6f, 4f) / 2f)
+    }
+
+    @Test
+    fun times_then_div_round_trips() {
+        val original = Offset(7f, -3f)
+        assertEquals(original, original * 4f / 4f)
+    }
 }
