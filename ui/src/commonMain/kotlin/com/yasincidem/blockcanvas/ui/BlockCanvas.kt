@@ -137,7 +137,6 @@ public fun BlockCanvas(
         modifier = modifier
             .onSizeChanged { canvasSize = it }
             .onKeyEvent { event ->
-                // Keep modifiers for desktop users
                 when {
                     event.key == Key.Escape && event.type == KeyEventType.KeyDown -> {
                         state.cancelMarquee()
@@ -145,6 +144,11 @@ public fun BlockCanvas(
                     }
                     event.key == Key.Spacebar -> {
                         state.isSpacePressed = event.type == KeyEventType.KeyDown
+                        true
+                    }
+                    (event.key == Key.Delete || event.key == Key.Backspace)
+                            && event.type == KeyEventType.KeyDown -> {
+                        state.deleteSelected()
                         true
                     }
                     else -> false

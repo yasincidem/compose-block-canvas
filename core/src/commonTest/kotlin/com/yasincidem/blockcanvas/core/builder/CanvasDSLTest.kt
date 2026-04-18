@@ -1,9 +1,17 @@
 package com.yasincidem.blockcanvas.core.builder
 
 import com.yasincidem.blockcanvas.core.geometry.Offset
+import com.yasincidem.blockcanvas.core.model.EdgeAnimation
+import com.yasincidem.blockcanvas.core.model.EdgeEnd
+import com.yasincidem.blockcanvas.core.model.EdgeStroke
+import com.yasincidem.blockcanvas.core.model.EndPoint
+import com.yasincidem.blockcanvas.core.model.NodeId
+import com.yasincidem.blockcanvas.core.model.PortId
 import com.yasincidem.blockcanvas.core.model.PortSide
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class CanvasDSLTest {
@@ -37,6 +45,61 @@ class CanvasDSLTest {
         assertEquals("p1", edge.from.port.value)
         assertEquals("n2", edge.to.node.value)
         assertEquals("p2", edge.to.port.value)
+    }
+
+    @Test
+    fun `linksTo with style block sets edge decoration`() {
+        val state = buildCanvasState {
+            node("a") { at(0f, 0f); port("out", PortSide.Right) }
+            node("b") { at(200f, 0f); port("in", PortSide.Left) }
+
+            connect("a", "out") linksTo connect("b", "in") style {
+                stroke = EdgeStroke.Dashed(dashLength = 10f, gapLength = 5f)
+                targetEnd = EdgeEnd.Arrow(size = 12f)
+                animation = EdgeAnimation.MarchingAnts(speedDpPerSecond = 60f)
+            }
+        }
+
+        val edge = state.edges.values.single()
+        assertTrue(edge.stroke is EdgeStroke.Dashed)
+        assertTrue(edge.targetEnd is EdgeEnd.Arrow)
+        assertTrue(edge.animation is EdgeAnimation.MarchingAnts)
+        assertNull(edge.sourceEnd)
+    }
+
+    @Test
+    fun `edge() builder function sets decoration`() {
+        val state = buildCanvasState {
+            node("a") { at(0f, 0f); port("out", PortSide.Right) }
+            node("b") { at(200f, 0f); port("in", PortSide.Left) }
+
+            edge(
+                from = EndPoint(NodeId("a"), PortId("out")),
+                to = EndPoint(NodeId("b"), PortId("in")),
+            ) {
+                stroke = EdgeStroke.Dotted(width = 3f)
+                targetEnd = EdgeEnd.Circle(radius = 6f)
+            }
+        }
+
+        val edge = state.edges.values.single()
+        assertTrue(edge.stroke is EdgeStroke.Dotted)
+        assertTrue(edge.targetEnd is EdgeEnd.Circle)
+    }
+
+    @Test
+    fun `linksTo without style has null decoration fields`() {
+        val state = buildCanvasState {
+            node("a") { at(0f, 0f); port("out", PortSide.Right) }
+            node("b") { at(200f, 0f); port("in", PortSide.Left) }
+            connect("a", "out") linksTo connect("b", "in")
+        }
+
+        val edge = state.edges.values.single()
+        assertNull(edge.stroke)
+        assertNull(edge.targetEnd)
+        assertNull(edge.sourceEnd)
+        assertNull(edge.animation)
     }
 
     @Test

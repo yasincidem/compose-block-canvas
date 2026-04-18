@@ -25,15 +25,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
-import com.yasincidem.blockcanvas.core.geometry.Offset
 import com.yasincidem.blockcanvas.core.model.EdgeAnimation
 import com.yasincidem.blockcanvas.core.model.EdgeEnd
 import com.yasincidem.blockcanvas.core.model.EdgeStroke
 import com.yasincidem.blockcanvas.core.model.Node
-import com.yasincidem.blockcanvas.core.model.Port
-import com.yasincidem.blockcanvas.core.model.PortId
 import com.yasincidem.blockcanvas.core.model.PortSide
 import com.yasincidem.blockcanvas.core.builder.buildCanvasState
+import com.yasincidem.blockcanvas.core.builder.style
 import com.yasincidem.blockcanvas.core.state.CanvasState
 import com.yasincidem.blockcanvas.ui.BlockCanvas
 import com.yasincidem.blockcanvas.ui.state.BlockCanvasState
@@ -245,7 +243,7 @@ private fun buildDemoCanvas(density: Float): CanvasState {
     val nodeH = 80f * density
     val gap = 60f * density
 
-    val base = buildCanvasState {
+    return buildCanvasState {
         node("node_1") {
             at(x = gap, y = 160f * density)
             size(nodeW, nodeH)
@@ -269,42 +267,19 @@ private fun buildDemoCanvas(density: Float): CanvasState {
             port("left", PortSide.Left)
         }
 
-        connect("node_1", "right") linksTo connect("node_2", "left")
-        connect("node_2", "right") linksTo connect("node_3", "left")
-        connect("node_3", "right") linksTo connect("node_4", "left")
+        connect("node_1", "right") linksTo connect("node_2", "left") style {
+            targetEnd = EdgeEnd.Arrow(size = 10f)
+            stroke = EdgeStroke.Solid(width = 2.5f)
+        }
+        connect("node_2", "right") linksTo connect("node_3", "left") style {
+            targetEnd = EdgeEnd.Circle(radius = 6f)
+            stroke = EdgeStroke.Dashed(width = 2f, dashLength = 10f, gapLength = 5f)
+            animation = EdgeAnimation.MarchingAnts(speedDpPerSecond = 60f)
+        }
+        connect("node_3", "right") linksTo connect("node_4", "left") style {
+            targetEnd = EdgeEnd.Diamond(size = 7f)
+            stroke = EdgeStroke.Dotted(width = 3f, gapLength = 5f)
+            animation = EdgeAnimation.Pulse(dotRadius = 4f, durationMs = 1200, count = 2)
+        }
     }
-
-    return applyEdgeDecorations(base)
-}
-
-private fun applyEdgeDecorations(canvas: CanvasState): CanvasState {
-    val edges = canvas.edges.values.toList()
-    var result = canvas
-
-    edges.getOrNull(0)?.let { e ->
-        result = result.copy(edges = result.edges + (e.id to e.copy(
-            sourceEnd = EdgeEnd.None,
-            targetEnd = EdgeEnd.Arrow(size = 10f),
-            stroke = EdgeStroke.Solid(width = 2.5f),
-            animation = EdgeAnimation.None,
-        )))
-    }
-    edges.getOrNull(1)?.let { e ->
-        result = result.copy(edges = result.edges + (e.id to e.copy(
-            sourceEnd = EdgeEnd.None,
-            targetEnd = EdgeEnd.Circle(radius = 6f),
-            stroke = EdgeStroke.Dashed(width = 2f, dashLength = 10f, gapLength = 5f),
-            animation = EdgeAnimation.MarchingAnts(speedDpPerSecond = 60f),
-        )))
-    }
-    edges.getOrNull(2)?.let { e ->
-        result = result.copy(edges = result.edges + (e.id to e.copy(
-            sourceEnd = EdgeEnd.None,
-            targetEnd = EdgeEnd.Diamond(size = 7f),
-            stroke = EdgeStroke.Dotted(width = 3f, gapLength = 5f),
-            animation = EdgeAnimation.Pulse(dotRadius = 4f, durationMs = 1200, count = 2),
-        )))
-    }
-
-    return result
 }

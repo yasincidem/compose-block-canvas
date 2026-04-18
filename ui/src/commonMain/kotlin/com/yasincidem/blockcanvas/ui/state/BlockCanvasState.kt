@@ -364,6 +364,22 @@ public class BlockCanvasState(
         selectionState = selectionState.remove(id)
     }
 
+    /** Deletes all currently selected nodes and edges in a single undoable step. */
+    public fun deleteSelected() {
+        val nodesToDelete = selectionState.selectedNodes.toSet()
+        val edgesToDelete = selectionState.selectedEdges.toSet()
+        if (nodesToDelete.isEmpty() && edgesToDelete.isEmpty()) return
+
+        mutateCanvas { state ->
+            var result = state
+            for (id in nodesToDelete) result = result.removeNode(id)
+            for (id in edgesToDelete) result = result.removeEdge(id)
+            result
+        }
+        nodesToDelete.forEach { nodePositions.remove(it) }
+        selectionState = selectionState.clear()
+    }
+
     // ── Selection ─────────────────────────────────────────────────────────────
 
     public fun toggleSelection(id: NodeId) { selectionState = selectionState.toggle(id) }
