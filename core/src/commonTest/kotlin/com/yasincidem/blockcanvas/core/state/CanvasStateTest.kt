@@ -7,16 +7,16 @@ import com.yasincidem.blockcanvas.core.model.EndPoint
 import com.yasincidem.blockcanvas.core.model.Node
 import com.yasincidem.blockcanvas.core.model.NodeId
 import com.yasincidem.blockcanvas.core.model.Port
-import com.yasincidem.blockcanvas.core.model.PortDirection
 import com.yasincidem.blockcanvas.core.model.PortId
+import com.yasincidem.blockcanvas.core.model.PortSide
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class CanvasStateTest {
 
-    private val port1 = Port(PortId("p1"), PortDirection.Out)
-    private val port2 = Port(PortId("p2"), PortDirection.In)
+    private val port1 = Port(PortId("p1"), PortSide.Right)
+    private val port2 = Port(PortId("p2"), PortSide.Left)
     
     private val node1 = Node(
         id = NodeId("n1"),

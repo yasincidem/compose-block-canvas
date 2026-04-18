@@ -86,7 +86,7 @@ public final class com/yasincidem/blockcanvas/core/hittest/DefaultHitTester : co
 	public static final field Companion Lcom/yasincidem/blockcanvas/core/hittest/DefaultHitTester$Companion;
 	public static final field DEFAULT_PORT_TOLERANCE F
 	public fun <init> ()V
-	public fun hitTest (Lcom/yasincidem/blockcanvas/core/geometry/Offset;Ljava/util/Collection;Lkotlin/jvm/functions/Function2;F)Lcom/yasincidem/blockcanvas/core/hittest/HitResult;
+	public fun hitTest (Lcom/yasincidem/blockcanvas/core/geometry/Offset;Ljava/util/Collection;F)Lcom/yasincidem/blockcanvas/core/hittest/HitResult;
 }
 
 public final class com/yasincidem/blockcanvas/core/hittest/DefaultHitTester$Companion {
@@ -127,12 +127,12 @@ public final class com/yasincidem/blockcanvas/core/hittest/HitResult$Port : com/
 }
 
 public abstract interface class com/yasincidem/blockcanvas/core/hittest/HitTester {
-	public abstract fun hitTest (Lcom/yasincidem/blockcanvas/core/geometry/Offset;Ljava/util/Collection;Lkotlin/jvm/functions/Function2;F)Lcom/yasincidem/blockcanvas/core/hittest/HitResult;
-	public static synthetic fun hitTest$default (Lcom/yasincidem/blockcanvas/core/hittest/HitTester;Lcom/yasincidem/blockcanvas/core/geometry/Offset;Ljava/util/Collection;Lkotlin/jvm/functions/Function2;FILjava/lang/Object;)Lcom/yasincidem/blockcanvas/core/hittest/HitResult;
+	public abstract fun hitTest (Lcom/yasincidem/blockcanvas/core/geometry/Offset;Ljava/util/Collection;F)Lcom/yasincidem/blockcanvas/core/hittest/HitResult;
+	public static synthetic fun hitTest$default (Lcom/yasincidem/blockcanvas/core/hittest/HitTester;Lcom/yasincidem/blockcanvas/core/geometry/Offset;Ljava/util/Collection;FILjava/lang/Object;)Lcom/yasincidem/blockcanvas/core/hittest/HitResult;
 }
 
 public final class com/yasincidem/blockcanvas/core/hittest/HitTester$DefaultImpls {
-	public static synthetic fun hitTest$default (Lcom/yasincidem/blockcanvas/core/hittest/HitTester;Lcom/yasincidem/blockcanvas/core/geometry/Offset;Ljava/util/Collection;Lkotlin/jvm/functions/Function2;FILjava/lang/Object;)Lcom/yasincidem/blockcanvas/core/hittest/HitResult;
+	public static synthetic fun hitTest$default (Lcom/yasincidem/blockcanvas/core/hittest/HitTester;Lcom/yasincidem/blockcanvas/core/geometry/Offset;Ljava/util/Collection;FILjava/lang/Object;)Lcom/yasincidem/blockcanvas/core/hittest/HitResult;
 }
 
 public final class com/yasincidem/blockcanvas/core/model/Edge {
@@ -211,24 +211,16 @@ public final class com/yasincidem/blockcanvas/core/model/NodeId {
 }
 
 public final class com/yasincidem/blockcanvas/core/model/Port {
-	public synthetic fun <init> (Ljava/lang/String;Lcom/yasincidem/blockcanvas/core/model/PortDirection;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ljava/lang/String;Lcom/yasincidem/blockcanvas/core/model/PortSide;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1--DG2Rr0 ()Ljava/lang/String;
-	public final fun component2 ()Lcom/yasincidem/blockcanvas/core/model/PortDirection;
-	public final fun copy-mPLP0Ho (Ljava/lang/String;Lcom/yasincidem/blockcanvas/core/model/PortDirection;)Lcom/yasincidem/blockcanvas/core/model/Port;
-	public static synthetic fun copy-mPLP0Ho$default (Lcom/yasincidem/blockcanvas/core/model/Port;Ljava/lang/String;Lcom/yasincidem/blockcanvas/core/model/PortDirection;ILjava/lang/Object;)Lcom/yasincidem/blockcanvas/core/model/Port;
+	public final fun component2 ()Lcom/yasincidem/blockcanvas/core/model/PortSide;
+	public final fun copy-mPLP0Ho (Ljava/lang/String;Lcom/yasincidem/blockcanvas/core/model/PortSide;)Lcom/yasincidem/blockcanvas/core/model/Port;
+	public static synthetic fun copy-mPLP0Ho$default (Lcom/yasincidem/blockcanvas/core/model/Port;Ljava/lang/String;Lcom/yasincidem/blockcanvas/core/model/PortSide;ILjava/lang/Object;)Lcom/yasincidem/blockcanvas/core/model/Port;
 	public fun equals (Ljava/lang/Object;)Z
-	public final fun getDirection ()Lcom/yasincidem/blockcanvas/core/model/PortDirection;
 	public final fun getId--DG2Rr0 ()Ljava/lang/String;
+	public final fun getSide ()Lcom/yasincidem/blockcanvas/core/model/PortSide;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
-}
-
-public final class com/yasincidem/blockcanvas/core/model/PortDirection : java/lang/Enum {
-	public static final field In Lcom/yasincidem/blockcanvas/core/model/PortDirection;
-	public static final field Out Lcom/yasincidem/blockcanvas/core/model/PortDirection;
-	public static fun getEntries ()Lkotlin/enums/EnumEntries;
-	public static fun valueOf (Ljava/lang/String;)Lcom/yasincidem/blockcanvas/core/model/PortDirection;
-	public static fun values ()[Lcom/yasincidem/blockcanvas/core/model/PortDirection;
 }
 
 public final class com/yasincidem/blockcanvas/core/model/PortId {
@@ -245,20 +237,21 @@ public final class com/yasincidem/blockcanvas/core/model/PortId {
 	public final synthetic fun unbox-impl ()Ljava/lang/String;
 }
 
-public abstract interface class com/yasincidem/blockcanvas/core/rules/ConnectionError {
+public final class com/yasincidem/blockcanvas/core/model/PortPositionKt {
+	public static final fun computePortPosition (Lcom/yasincidem/blockcanvas/core/model/Node;Lcom/yasincidem/blockcanvas/core/model/Port;)Lcom/yasincidem/blockcanvas/core/geometry/Offset;
 }
 
-public final class com/yasincidem/blockcanvas/core/rules/ConnectionError$DirectionMismatch : com/yasincidem/blockcanvas/core/rules/ConnectionError {
-	public fun <init> (Lcom/yasincidem/blockcanvas/core/model/PortDirection;Lcom/yasincidem/blockcanvas/core/model/PortDirection;)V
-	public final fun component1 ()Lcom/yasincidem/blockcanvas/core/model/PortDirection;
-	public final fun component2 ()Lcom/yasincidem/blockcanvas/core/model/PortDirection;
-	public final fun copy (Lcom/yasincidem/blockcanvas/core/model/PortDirection;Lcom/yasincidem/blockcanvas/core/model/PortDirection;)Lcom/yasincidem/blockcanvas/core/rules/ConnectionError$DirectionMismatch;
-	public static synthetic fun copy$default (Lcom/yasincidem/blockcanvas/core/rules/ConnectionError$DirectionMismatch;Lcom/yasincidem/blockcanvas/core/model/PortDirection;Lcom/yasincidem/blockcanvas/core/model/PortDirection;ILjava/lang/Object;)Lcom/yasincidem/blockcanvas/core/rules/ConnectionError$DirectionMismatch;
-	public fun equals (Ljava/lang/Object;)Z
-	public final fun getFromDirection ()Lcom/yasincidem/blockcanvas/core/model/PortDirection;
-	public final fun getToDirection ()Lcom/yasincidem/blockcanvas/core/model/PortDirection;
-	public fun hashCode ()I
-	public fun toString ()Ljava/lang/String;
+public final class com/yasincidem/blockcanvas/core/model/PortSide : java/lang/Enum {
+	public static final field Bottom Lcom/yasincidem/blockcanvas/core/model/PortSide;
+	public static final field Left Lcom/yasincidem/blockcanvas/core/model/PortSide;
+	public static final field Right Lcom/yasincidem/blockcanvas/core/model/PortSide;
+	public static final field Top Lcom/yasincidem/blockcanvas/core/model/PortSide;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/yasincidem/blockcanvas/core/model/PortSide;
+	public static fun values ()[Lcom/yasincidem/blockcanvas/core/model/PortSide;
+}
+
+public abstract interface class com/yasincidem/blockcanvas/core/rules/ConnectionError {
 }
 
 public final class com/yasincidem/blockcanvas/core/rules/ConnectionError$DuplicateEdge : com/yasincidem/blockcanvas/core/rules/ConnectionError {

@@ -9,8 +9,8 @@ import kotlin.test.assertTrue
 class NodeTest {
 
     private val samplePorts = listOf(
-        Port(PortId("in0"), PortDirection.In),
-        Port(PortId("out0"), PortDirection.Out),
+        Port(PortId("left"),  PortSide.Left),
+        Port(PortId("right"), PortSide.Right),
     )
 
     @Test
@@ -31,13 +31,7 @@ class NodeTest {
 
     @Test
     fun node_allows_empty_ports_list() {
-        val node = Node(
-            id = NodeId("n1"),
-            position = Offset.Zero,
-            width = 10f,
-            height = 10f,
-            ports = emptyList(),
-        )
+        val node = Node(NodeId("n1"), Offset.Zero, 10f, 10f, emptyList())
         assertTrue(node.ports.isEmpty())
     }
 
@@ -58,12 +52,11 @@ class NodeTest {
     @Test
     fun node_rejects_duplicate_port_ids() {
         val dup = listOf(
-            Port(PortId("p"), PortDirection.In),
-            Port(PortId("p"), PortDirection.Out),
+            Port(PortId("p"), PortSide.Left),
+            Port(PortId("p"), PortSide.Right),
         )
         assertFailsWith<IllegalArgumentException> {
             Node(NodeId("n"), Offset.Zero, 10f, 10f, dup)
         }
     }
-
 }

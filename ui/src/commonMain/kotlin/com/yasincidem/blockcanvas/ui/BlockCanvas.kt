@@ -6,6 +6,7 @@ import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -15,11 +16,11 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import com.yasincidem.blockcanvas.core.geometry.Offset as CoreOffset
 import com.yasincidem.blockcanvas.core.model.Node
-import com.yasincidem.blockcanvas.core.model.NodeId
-import com.yasincidem.blockcanvas.core.model.PortId
+import com.yasincidem.blockcanvas.core.model.computePortPosition
 import com.yasincidem.blockcanvas.ui.state.BlockCanvasState
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -30,24 +31,25 @@ private fun androidx.compose.ui.geometry.Offset.toCore() = CoreOffset(x, y)
 /**
  * The main composable for the node-based editor.
  *
- * Renders edges as cubic beziers on a [Canvas] layer beneath the nodes, then
- * positions nodes in world space via a [graphicsLayer] viewport transform.
- * Pinch-to-zoom and pan are handled by [detectTransformGestures]; per-node
- * drag is handled by [detectDragGestures].
+ * Each node is wrapped in a container sized to [Node.width] × [Node.height]
+ * in screen pixels (converted to dp via [LocalDensity]) so that port
+ * positions computed by [computePortPosition] align exactly with the visual
+ * node edges. Edges are rendered as cubic beziers on a [Canvas] layer beneath
+ * the nodes.
  *
- * @param state         Hoisted state managing canvas data, selection, and viewport.
- * @param modifier      Modifier for the outer bounds of the canvas.
- * @param portPosition  Resolves a port's world-space position given its node and port ids.
- *                      Return `null` to skip drawing edges that involve that port.
- * @param nodeContent   Slot for rendering a single node. The canvas positions it automatically.
+ * @param state       Hoisted state managing canvas data, selection, and viewport.
+ * @param modifier    Modifier for the outer bounds of the canvas.
+ * @param nodeContent Slot for rendering a single node. The node container is
+ *                    already sized; use [Modifier.fillMaxSize] inside.
  */
 @Composable
 public fun BlockCanvas(
     state: BlockCanvasState,
     modifier: Modifier = Modifier,
-    portPosition: (nodeId: NodeId, portId: PortId) -> CoreOffset? = { _, _ -> null },
     nodeContent: @Composable (Node) -> Unit,
 ) {
+    val density = LocalDensity.current
+
     Box(
         modifier = modifier.pointerInput(state) {
             detectTransformGestures { centroid, pan, zoomFactor, _ ->
@@ -61,20 +63,21 @@ public fun BlockCanvas(
     ) {
         // z-order: edges behind, nodes above.
 
-        // Edge layer — drawn in screen space with manual viewport transform so the
-        // Canvas can fill the full layout bounds.
+        // Edge layer — drawn in screen space using Viewport.worldToScreen.
         Canvas(modifier = Modifier.fillMaxSize()) {
             state.canvasState.edges.values.forEach { edge ->
-                val fromWorld = portPosition(edge.from.node, edge.from.port) ?: return@forEach
-                val toWorld = portPosition(edge.to.node, edge.to.port) ?: return@forEach
-                val from = state.viewport.worldToScreen(fromWorld).toCompose()
-                val to = state.viewport.worldToScreen(toWorld).toCompose()
-                drawEdgeBezier(from, to)
+                val fromNode = state.canvasState.nodes[edge.from.node] ?: return@forEach
+                val toNode   = state.canvasState.nodes[edge.to.node]   ?: return@forEach
+                val fromPort = fromNode.ports.find { it.id == edge.from.port } ?: return@forEach
+                val toPort   = toNode.ports.find   { it.id == edge.to.port }   ?: return@forEach
+
+                val fromScreen = state.viewport.worldToScreen(computePortPosition(fromNode, fromPort)).toCompose()
+                val toScreen   = state.viewport.worldToScreen(computePortPosition(toNode,   toPort)).toCompose()
+                drawEdgeBezier(fromScreen, toScreen)
             }
         }
 
-        // Node layer — world-to-screen transform applied by graphicsLayer so each
-        // node is positioned with its world-space Offset directly.
+        // Node layer — viewport applied via graphicsLayer.
         Box(
             modifier = Modifier.graphicsLayer {
                 translationX = state.viewport.pan.x
@@ -93,6 +96,12 @@ public fun BlockCanvas(
                                 y = node.position.y.roundToInt(),
                             )
                         }
+                        // Size the container in dp so it matches the pixel world-space
+                        // dimensions: visual px = node.width, so dp = px / density.
+                        .size(
+                            width  = with(density) { node.width.toDp() },
+                            height = with(density) { node.height.toDp() },
+                        )
                         .pointerInput(node.id) {
                             detectDragGestures { _, dragAmount ->
                                 val worldDelta = dragAmount.toCore() / state.viewport.zoom

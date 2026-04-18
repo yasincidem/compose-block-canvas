@@ -7,8 +7,8 @@ import com.yasincidem.blockcanvas.core.model.EndPoint
 import com.yasincidem.blockcanvas.core.model.Node
 import com.yasincidem.blockcanvas.core.model.NodeId
 import com.yasincidem.blockcanvas.core.model.Port
-import com.yasincidem.blockcanvas.core.model.PortDirection
 import com.yasincidem.blockcanvas.core.model.PortId
+import com.yasincidem.blockcanvas.core.model.PortSide
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -20,22 +20,26 @@ class ConnectionValidatorTest {
     private val n1 = Node(
         id = NodeId("n1"),
         position = Offset.Zero,
-        width = 10f,
-        height = 10f,
+        width = 100f,
+        height = 80f,
         ports = listOf(
-            Port(PortId("in"), PortDirection.In),
-            Port(PortId("out"), PortDirection.Out),
+            Port(PortId("top"),    PortSide.Top),
+            Port(PortId("right"),  PortSide.Right),
+            Port(PortId("bottom"), PortSide.Bottom),
+            Port(PortId("left"),   PortSide.Left),
         ),
     )
 
     private val n2 = Node(
         id = NodeId("n2"),
-        position = Offset.Zero,
-        width = 10f,
-        height = 10f,
+        position = Offset(200f, 0f),
+        width = 100f,
+        height = 80f,
         ports = listOf(
-            Port(PortId("in"), PortDirection.In),
-            Port(PortId("out"), PortDirection.Out),
+            Port(PortId("top"),    PortSide.Top),
+            Port(PortId("right"),  PortSide.Right),
+            Port(PortId("bottom"), PortSide.Bottom),
+            Port(PortId("left"),   PortSide.Left),
         ),
     )
 
@@ -49,89 +53,60 @@ class ConnectionValidatorTest {
     }
 
     @Test
-    fun valid_out_to_in_returns_null() {
-        val from = EndPoint(NodeId("n1"), PortId("out"))
-        val to = EndPoint(NodeId("n2"), PortId("in"))
-        assertNull(validator.validate(from, to, emptyList(), portLookup))
+    fun `any port to any other port on different node is valid`() {
+        PortSide.entries.forEach { fromSide ->
+            PortSide.entries.forEach { toSide ->
+                val from = EndPoint(NodeId("n1"), PortId(fromSide.name.lowercase()))
+                val to   = EndPoint(NodeId("n2"), PortId(toSide.name.lowercase()))
+                assertNull(validator.validate(from, to, emptyList(), portLookup),
+                    "Expected $fromSide→$toSide to be valid")
+            }
+        }
     }
 
     @Test
-    fun in_to_out_rejected_as_direction_mismatch() {
-        val from = EndPoint(NodeId("n1"), PortId("in"))
-        val to = EndPoint(NodeId("n2"), PortId("out"))
-        val err = validator.validate(from, to, emptyList(), portLookup)
-        assertEquals(
-            ConnectionError.DirectionMismatch(PortDirection.In, PortDirection.Out),
-            err,
-        )
-    }
-
-    @Test
-    fun in_to_in_rejected_as_direction_mismatch() {
-        val from = EndPoint(NodeId("n1"), PortId("in"))
-        val to = EndPoint(NodeId("n2"), PortId("in"))
-        val err = validator.validate(from, to, emptyList(), portLookup)
-        assertEquals(
-            ConnectionError.DirectionMismatch(PortDirection.In, PortDirection.In),
-            err,
-        )
-    }
-
-    @Test
-    fun out_to_out_rejected_as_direction_mismatch() {
-        val from = EndPoint(NodeId("n1"), PortId("out"))
-        val to = EndPoint(NodeId("n2"), PortId("out"))
-        val err = validator.validate(from, to, emptyList(), portLookup)
-        assertEquals(
-            ConnectionError.DirectionMismatch(PortDirection.Out, PortDirection.Out),
-            err,
-        )
-    }
-
-    @Test
-    fun self_loop_same_endpoint_rejected() {
-        val ep = EndPoint(NodeId("n1"), PortId("out"))
+    fun `self_loop same endpoint rejected`() {
+        val ep = EndPoint(NodeId("n1"), PortId("right"))
         val err = validator.validate(ep, ep, emptyList(), portLookup)
         assertEquals(ConnectionError.SelfLoop(ep), err)
     }
 
     @Test
-    fun same_node_different_ports_allowed() {
-        val from = EndPoint(NodeId("n1"), PortId("out"))
-        val to = EndPoint(NodeId("n1"), PortId("in"))
+    fun `same node different ports allowed`() {
+        val from = EndPoint(NodeId("n1"), PortId("right"))
+        val to   = EndPoint(NodeId("n1"), PortId("left"))
         assertNull(validator.validate(from, to, emptyList(), portLookup))
     }
 
     @Test
-    fun missing_from_port_returns_PortNotFound() {
-        val from = EndPoint(NodeId("nX"), PortId("out"))
-        val to = EndPoint(NodeId("n2"), PortId("in"))
-        val err = validator.validate(from, to, emptyList(), portLookup)
-        assertEquals(ConnectionError.PortNotFound(from), err)
+    fun `missing from port returns PortNotFound`() {
+        val from = EndPoint(NodeId("nX"), PortId("right"))
+        val to   = EndPoint(NodeId("n2"), PortId("left"))
+        assertEquals(ConnectionError.PortNotFound(from),
+            validator.validate(from, to, emptyList(), portLookup))
     }
 
     @Test
-    fun missing_to_port_returns_PortNotFound() {
-        val from = EndPoint(NodeId("n1"), PortId("out"))
-        val to = EndPoint(NodeId("n2"), PortId("nope"))
-        val err = validator.validate(from, to, emptyList(), portLookup)
-        assertEquals(ConnectionError.PortNotFound(to), err)
+    fun `missing to port returns PortNotFound`() {
+        val from = EndPoint(NodeId("n1"), PortId("right"))
+        val to   = EndPoint(NodeId("n2"), PortId("nope"))
+        assertEquals(ConnectionError.PortNotFound(to),
+            validator.validate(from, to, emptyList(), portLookup))
     }
 
     @Test
-    fun duplicate_edge_rejected() {
-        val from = EndPoint(NodeId("n1"), PortId("out"))
-        val to = EndPoint(NodeId("n2"), PortId("in"))
+    fun `duplicate edge rejected`() {
+        val from = EndPoint(NodeId("n1"), PortId("right"))
+        val to   = EndPoint(NodeId("n2"), PortId("left"))
         val existing = Edge(EdgeId("e1"), from, to)
-        val err = validator.validate(from, to, listOf(existing), portLookup)
-        assertEquals(ConnectionError.DuplicateEdge(EdgeId("e1")), err)
+        assertEquals(ConnectionError.DuplicateEdge(EdgeId("e1")),
+            validator.validate(from, to, listOf(existing), portLookup))
     }
 
     @Test
-    fun reverse_existing_edge_is_not_duplicate() {
-        val a = EndPoint(NodeId("n1"), PortId("out"))
-        val b = EndPoint(NodeId("n2"), PortId("in"))
-        // (b, a) already exists; candidate (a, b) is a different directed edge.
+    fun `reverse of existing edge is not duplicate`() {
+        val a = EndPoint(NodeId("n1"), PortId("right"))
+        val b = EndPoint(NodeId("n2"), PortId("left"))
         val reverse = Edge(EdgeId("e1"), b, a)
         assertNull(validator.validate(a, b, listOf(reverse), portLookup))
     }

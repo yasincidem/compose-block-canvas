@@ -1,5 +1,5 @@
 public final class com/yasincidem/blockcanvas/ui/BlockCanvasKt {
-	public static final fun BlockCanvas (Lcom/yasincidem/blockcanvas/ui/state/BlockCanvasState;Landroidx/compose/ui/Modifier;Lkotlin/jvm/functions/Function2;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
+	public static final fun BlockCanvas (Lcom/yasincidem/blockcanvas/ui/state/BlockCanvasState;Landroidx/compose/ui/Modifier;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
 }
 
 public final class com/yasincidem/blockcanvas/ui/state/BlockCanvasState {
