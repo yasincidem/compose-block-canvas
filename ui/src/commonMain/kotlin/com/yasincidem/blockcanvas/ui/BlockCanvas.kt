@@ -24,6 +24,7 @@ import androidx.compose.ui.input.pointer.isShiftPressed
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
 import com.yasincidem.blockcanvas.core.hittest.DefaultHitTester
 import com.yasincidem.blockcanvas.core.hittest.HitResult
 import com.yasincidem.blockcanvas.core.model.EndPoint
@@ -123,6 +124,11 @@ public fun BlockCanvas(
                                 state.selectOnly(hit.nodeId)
                             }
 
+                            val startPositions = state.selectionState.selectedNodes.associateWith {
+                                state.nodePositions[it] ?: state.canvasState.nodes[it]?.position ?: CoreOffset(0f, 0f)
+                            }
+                            var totalDelta = CoreOffset(0f, 0f)
+
                             while (true) {
                                 val dragEvent = awaitPointerEvent()
                                 val change = dragEvent.changes.find { it.id == down.id } ?: break
@@ -136,10 +142,21 @@ public fun BlockCanvas(
                                 }
                                 change.consume()
                                 val delta = (change.position - change.previousPosition).toCore() / state.viewport.zoom
+                                totalDelta = CoreOffset(totalDelta.x + delta.x, totalDelta.y + delta.y)
                                 
                                 state.selectionState.selectedNodes.forEach { selectedId ->
-                                    val current = state.nodePositions[selectedId] ?: return@forEach
-                                    state.moveNodeDuringDrag(selectedId, current + delta)
+                                    val startPos = startPositions[selectedId] ?: return@forEach
+                                    val rawPos = CoreOffset(startPos.x + totalDelta.x, startPos.y + totalDelta.y)
+                                    
+                                    val snappedPos = if (state.snapToGrid > 0f) {
+                                        CoreOffset(
+                                            x = (rawPos.x / state.snapToGrid).roundToInt() * state.snapToGrid,
+                                            y = (rawPos.y / state.snapToGrid).roundToInt() * state.snapToGrid
+                                        )
+                                    } else {
+                                        rawPos
+                                    }
+                                    state.moveNodeDuringDrag(selectedId, snappedPos)
                                 }
                             }
                         }
@@ -154,7 +171,29 @@ public fun BlockCanvas(
                 }
             }
     ) {
-        // z-order: edges behind, nodes above.
+        // z-order: grid behind, edges behind, nodes above.
+        
+        // Grid layer
+        if (state.snapToGrid > 0f) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val scaledGrid = state.snapToGrid * state.viewport.zoom
+                // modulo to find the starting offset
+                val panX = state.viewport.pan.x % scaledGrid
+                val panY = state.viewport.pan.y % scaledGrid
+                val dotRadius = 1.dp.toPx()
+                val dotColor = Color.White.copy(alpha = 0.15f)
+                
+                var x = if (panX > 0) panX - scaledGrid else panX
+                while (x < size.width) {
+                    var y = if (panY > 0) panY - scaledGrid else panY
+                    while (y < size.height) {
+                        drawCircle(dotColor, radius = dotRadius, center = androidx.compose.ui.geometry.Offset(x, y))
+                        y += scaledGrid
+                    }
+                    x += scaledGrid
+                }
+            }
+        }
 
         // Edge layer — drawn in screen space using Viewport.worldToScreen.
         // Reads state.nodePositions (SnapshotStateMap) so position changes during drag

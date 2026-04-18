@@ -36,6 +36,7 @@ public class BlockCanvasState(
     initialCanvasState: CanvasState = CanvasState(),
     initialSelectionState: SelectionState = SelectionState(),
     initialViewport: Viewport = Viewport.Default,
+    public var snapToGrid: Float = 20f,
 ) {
     public var canvasState: CanvasState by mutableStateOf(initialCanvasState)
         private set
@@ -151,8 +152,9 @@ public fun rememberBlockCanvasState(
     initialCanvasState: CanvasState = CanvasState(),
     initialSelectionState: SelectionState = SelectionState(),
     initialViewport: Viewport = Viewport.Default,
+    snapToGrid: Float = 20f,
 ): BlockCanvasState {
     return remember {
-        BlockCanvasState(initialCanvasState, initialSelectionState, initialViewport)
+        BlockCanvasState(initialCanvasState, initialSelectionState, initialViewport, snapToGrid)
     }
 }
