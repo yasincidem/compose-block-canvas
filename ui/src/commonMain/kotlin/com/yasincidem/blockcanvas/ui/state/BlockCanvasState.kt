@@ -6,6 +6,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.yasincidem.blockcanvas.core.geometry.Viewport
 import com.yasincidem.blockcanvas.core.model.Edge
 import com.yasincidem.blockcanvas.core.model.EdgeId
 import com.yasincidem.blockcanvas.core.model.Node
@@ -16,21 +17,28 @@ import com.yasincidem.blockcanvas.core.state.SelectionState
 /**
  * Hoisted mutable state container for the BlockCanvas composable.
  *
- * This bridges the immutable data layers ([CanvasState], [SelectionState])
- * with Compose's reactivity system. By updating the properties here,
- * Compose will efficiently recompose only the modified parts of the canvas. // Wait, does updating entire CanvasState trigger granular recomposition? 
- * Actually, because CanvasState and nodes/edges inside are immutable, Compose handles it relatively well if key-based.
+ * This bridges the immutable data layers ([CanvasState], [SelectionState], [Viewport])
+ * with Compose's reactivity system.
  */
 @Stable
 public class BlockCanvasState(
     initialCanvasState: CanvasState = CanvasState(),
     initialSelectionState: SelectionState = SelectionState(),
+    initialViewport: Viewport = Viewport.Default,
 ) {
     public var canvasState: CanvasState by mutableStateOf(initialCanvasState)
         private set
 
     public var selectionState: SelectionState by mutableStateOf(initialSelectionState)
         private set
+
+    public var viewport: Viewport by mutableStateOf(initialViewport)
+        private set
+
+    /** Replaces the current viewport (pan + zoom). */
+    public fun updateViewport(new: Viewport) {
+        viewport = new
+    }
 
     /**
      * Adds or updates a node in the canvas.
@@ -99,8 +107,9 @@ public class BlockCanvasState(
 public fun rememberBlockCanvasState(
     initialCanvasState: CanvasState = CanvasState(),
     initialSelectionState: SelectionState = SelectionState(),
+    initialViewport: Viewport = Viewport.Default,
 ): BlockCanvasState {
     return remember {
-        BlockCanvasState(initialCanvasState, initialSelectionState)
+        BlockCanvasState(initialCanvasState, initialSelectionState, initialViewport)
     }
 }

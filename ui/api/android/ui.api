@@ -5,21 +5,23 @@ public final class com/yasincidem/blockcanvas/ui/BlockCanvasKt {
 public final class com/yasincidem/blockcanvas/ui/state/BlockCanvasState {
 	public static final field $stable I
 	public fun <init> ()V
-	public fun <init> (Lcom/yasincidem/blockcanvas/core/state/CanvasState;Lcom/yasincidem/blockcanvas/core/state/SelectionState;)V
-	public synthetic fun <init> (Lcom/yasincidem/blockcanvas/core/state/CanvasState;Lcom/yasincidem/blockcanvas/core/state/SelectionState;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Lcom/yasincidem/blockcanvas/core/state/CanvasState;Lcom/yasincidem/blockcanvas/core/state/SelectionState;Lcom/yasincidem/blockcanvas/core/geometry/Viewport;)V
+	public synthetic fun <init> (Lcom/yasincidem/blockcanvas/core/state/CanvasState;Lcom/yasincidem/blockcanvas/core/state/SelectionState;Lcom/yasincidem/blockcanvas/core/geometry/Viewport;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun addEdge (Lcom/yasincidem/blockcanvas/core/model/Edge;)V
 	public final fun addNode (Lcom/yasincidem/blockcanvas/core/model/Node;)V
 	public final fun clearSelection ()V
 	public final fun getCanvasState ()Lcom/yasincidem/blockcanvas/core/state/CanvasState;
 	public final fun getSelectionState ()Lcom/yasincidem/blockcanvas/core/state/SelectionState;
+	public final fun getViewport ()Lcom/yasincidem/blockcanvas/core/geometry/Viewport;
 	public final fun removeEdge-lEqb4Is (Ljava/lang/String;)V
 	public final fun removeNode-UUhBwN4 (Ljava/lang/String;)V
 	public final fun selectOnly-UUhBwN4 (Ljava/lang/String;)V
 	public final fun toggleSelection-UUhBwN4 (Ljava/lang/String;)V
 	public final fun toggleSelection-lEqb4Is (Ljava/lang/String;)V
+	public final fun updateViewport (Lcom/yasincidem/blockcanvas/core/geometry/Viewport;)V
 }
 
 public final class com/yasincidem/blockcanvas/ui/state/BlockCanvasStateKt {
-	public static final fun rememberBlockCanvasState (Lcom/yasincidem/blockcanvas/core/state/CanvasState;Lcom/yasincidem/blockcanvas/core/state/SelectionState;Landroidx/compose/runtime/Composer;II)Lcom/yasincidem/blockcanvas/ui/state/BlockCanvasState;
+	public static final fun rememberBlockCanvasState (Lcom/yasincidem/blockcanvas/core/state/CanvasState;Lcom/yasincidem/blockcanvas/core/state/SelectionState;Lcom/yasincidem/blockcanvas/core/geometry/Viewport;Landroidx/compose/runtime/Composer;II)Lcom/yasincidem/blockcanvas/ui/state/BlockCanvasState;
 }
 
