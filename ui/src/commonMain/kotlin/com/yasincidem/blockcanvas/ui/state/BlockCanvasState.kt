@@ -169,9 +169,9 @@ public class BlockCanvasState(
      * move all existing nodes to their nearest grid positions.
      */
     public fun snap(pos: Offset): Offset {
-        if (!gridConfig.snapToGrid || gridConfig.type == GridType.None) return pos
+        if (!gridConfig.snapToGrid || gridConfig.style is GridStyle.None) return pos
 
-        val s = gridConfig.spacing
+        val s = gridConfig.style.spacing
         val step = s * 0.5f
         val z = viewport.zoom
         val px = viewport.pan.x
@@ -194,7 +194,7 @@ public class BlockCanvasState(
 
     /** Immediately snaps every node to its nearest grid position. No-op if snap is disabled. */
     public fun snapAllToGrid() {
-        if (!gridConfig.snapToGrid || gridConfig.type == GridType.None) return
+        if (!gridConfig.snapToGrid || gridConfig.style is GridStyle.None) return
         mutateCanvas { state ->
             var result = state
             for (node in state.nodes.values) {

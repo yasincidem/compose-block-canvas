@@ -11,7 +11,7 @@ class GridSnappingTest {
 
     @Test
     fun `snapping at zoom 1_0 without pan should snap to nearest multiple of spacing or half-spacing`() {
-        val config = GridConfig(spacing = 20f, snapToGrid = true)
+        val config = GridConfig(style = GridStyle.Dots(spacing = 20f), snapToGrid = true)
         val viewport = Viewport(pan = Offset(0f, 0f), zoom = 1.0f)
         val state = BlockCanvasState(initialViewport = viewport)
         state.gridConfig = config
@@ -22,7 +22,7 @@ class GridSnappingTest {
 
     @Test
     fun `snapping with pan should align with visible screen lines or mid-points`() {
-        val config = GridConfig(spacing = 20f, snapToGrid = true)
+        val config = GridConfig(style = GridStyle.Dots(spacing = 20f), snapToGrid = true)
         val viewport = Viewport(pan = Offset(5f, 5f), zoom = 1.0f)
         val state = BlockCanvasState(initialViewport = viewport)
         state.gridConfig = config
@@ -34,7 +34,7 @@ class GridSnappingTest {
 
     @Test
     fun `snapping should automatically allow half-grid alignment`() {
-        val config = GridConfig(spacing = 20f, snapToGrid = true)
+        val config = GridConfig(style = GridStyle.Dots(spacing = 20f), snapToGrid = true)
         val viewport = Viewport(pan = Offset(0f, 0f), zoom = 1.0f)
         val state = BlockCanvasState(initialViewport = viewport)
         state.gridConfig = config
@@ -54,7 +54,7 @@ class GridSnappingTest {
 
     @Test
     fun `snap is idempotent - pre-snapping base prevents jump on first small delta`() {
-        val config = GridConfig(spacing = 20f, snapToGrid = true)
+        val config = GridConfig(style = GridStyle.Dots(spacing = 20f), snapToGrid = true)
         val state = BlockCanvasState(initialViewport = Viewport(pan = Offset(0f, 0f), zoom = 1f))
         state.gridConfig = config
 
@@ -68,7 +68,7 @@ class GridSnappingTest {
 
     @Test
     fun `snap disabled returns original position unchanged`() {
-        val config = GridConfig(spacing = 20f, snapToGrid = false)
+        val config = GridConfig(style = GridStyle.Dots(spacing = 20f), snapToGrid = false)
         val state = BlockCanvasState(initialViewport = Viewport(pan = Offset(0f, 0f), zoom = 1f))
         state.gridConfig = config
 
@@ -82,8 +82,8 @@ class GridSnappingTest {
         val spacing = 20f
         val step = spacing / 2f
 
-        state.gridConfig = GridConfig(spacing = spacing, snapToGrid = false)
-        state.gridConfig = GridConfig(spacing = spacing, snapToGrid = true)
+        state.gridConfig = GridConfig(style = GridStyle.Dots(spacing = spacing), snapToGrid = false)
+        state.gridConfig = GridConfig(style = GridStyle.Dots(spacing = spacing), snapToGrid = true)
 
         val pos = Offset(27f, 22f)
         val snapped = state.snap(pos)
@@ -97,7 +97,7 @@ class GridSnappingTest {
         val spacing = 20f
         val step = spacing * 0.5f
         val state = BlockCanvasState(initialViewport = Viewport(pan = Offset(0f, 0f), zoom = 1f))
-        state.gridConfig = GridConfig(spacing = spacing, snapToGrid = true)
+        state.gridConfig = GridConfig(style = GridStyle.Dots(spacing = spacing), snapToGrid = true)
 
         // Simulate landing just past 1000 half-steps — roundToInt must absorb the 0.3f noise
         val totalDelta = 1000f * step + 0.3f
@@ -115,7 +115,7 @@ class GridSnappingTest {
         val spacing = 20f
         val step = spacing * 0.5f
         val state = BlockCanvasState(initialViewport = Viewport(pan = Offset(0f, 0f), zoom = 1f))
-        state.gridConfig = GridConfig(spacing = spacing, snapToGrid = true)
+        state.gridConfig = GridConfig(style = GridStyle.Dots(spacing = spacing), snapToGrid = true)
 
         state.addNode(Node(id = NodeId("n1"), position = Offset(13f, 7f), width = 100f, height = 60f, ports = emptyList()))
         state.addNode(Node(id = NodeId("n2"), position = Offset(37f, 24f), width = 100f, height = 60f, ports = emptyList()))
@@ -134,7 +134,7 @@ class GridSnappingTest {
     @Test
     fun `snapAllToGrid is no-op when snap disabled`() {
         val state = BlockCanvasState(initialViewport = Viewport(pan = Offset(0f, 0f), zoom = 1f))
-        state.gridConfig = GridConfig(spacing = 20f, snapToGrid = false)
+        state.gridConfig = GridConfig(style = GridStyle.Dots(spacing = 20f), snapToGrid = false)
 
         val n = Node(id = NodeId("n"), position = Offset(13f, 7f), width = 100f, height = 60f, ports = emptyList())
         state.addNode(n)

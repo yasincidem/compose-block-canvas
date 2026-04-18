@@ -39,7 +39,7 @@ import com.yasincidem.blockcanvas.core.state.CanvasState
 import com.yasincidem.blockcanvas.core.builder.buildCanvasState
 import com.yasincidem.blockcanvas.ui.BlockCanvas
 import com.yasincidem.blockcanvas.ui.state.GridConfig
-import com.yasincidem.blockcanvas.ui.state.GridType
+import com.yasincidem.blockcanvas.ui.state.GridStyle
 import com.yasincidem.blockcanvas.ui.state.rememberBlockCanvasState
 
 /** Pixel size of the port dot indicator. */
@@ -140,11 +140,9 @@ fun App() {
             val canvasState = rememberBlockCanvasState(
                 initialCanvasState = canvasWithDecorations,
                 gridConfig = GridConfig(
-                    type = GridType.Dots,
-                    spacing = 20f,
+                    style = GridStyle.Dots(spacing = 24f),
                     snapToGrid = true,
-                    backgroundColor = Color.Unspecified,
-                    gridColor = Color.LightGray
+                    backgroundColor = Color(0xFF_0F0F1A),
                 )
             )
 
@@ -206,11 +204,22 @@ fun App() {
 
                 Row(modifier = Modifier.align(Alignment.TopCenter).padding(top = 16.dp)) {
                     Button(onClick = {
-                        canvasState.gridConfig = canvasState.gridConfig.copy(
-                            type = if (canvasState.gridConfig.type == GridType.Dots) GridType.Lines else GridType.Dots
-                        )
+                        val current = canvasState.gridConfig.style
+                        val next = when (current) {
+                            is GridStyle.Dots -> GridStyle.Lines()
+                            is GridStyle.Lines -> GridStyle.Crosses()
+                            is GridStyle.Crosses -> GridStyle.None
+                            is GridStyle.None -> GridStyle.Dots()
+                        }
+                        canvasState.gridConfig = canvasState.gridConfig.copy(style = next)
                     }) {
-                        Text(if (canvasState.gridConfig.type == GridType.Dots) "Switch to Lines" else "Switch to Dots")
+                        val styleName = when (canvasState.gridConfig.style) {
+                            is GridStyle.Dots -> "Dots"
+                            is GridStyle.Lines -> "Lines"
+                            is GridStyle.Crosses -> "Crosses"
+                            is GridStyle.None -> "None"
+                        }
+                        Text("Grid: $styleName")
                     }
                     Spacer(Modifier.width(16.dp))
                     Button(onClick = {

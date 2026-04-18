@@ -49,9 +49,10 @@ import com.yasincidem.blockcanvas.core.routing.EdgeRouter
 import com.yasincidem.blockcanvas.ui.state.AlignmentGuideStyle
 import com.yasincidem.blockcanvas.ui.state.BlockCanvasState
 import com.yasincidem.blockcanvas.ui.state.GridConfig
-import com.yasincidem.blockcanvas.ui.state.GridType
+import com.yasincidem.blockcanvas.ui.state.GridStyle
 import kotlin.math.abs
 import kotlin.math.atan2
+import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
@@ -61,6 +62,7 @@ import com.yasincidem.blockcanvas.core.model.EdgeEnd
 import com.yasincidem.blockcanvas.core.model.EdgeStroke
 import androidx.compose.ui.graphics.StrokeCap
 import com.yasincidem.blockcanvas.core.geometry.Offset as CoreOffset
+import com.yasincidem.blockcanvas.core.geometry.calculateVisibleGridCells
 
 private fun CoreOffset.toCompose() = androidx.compose.ui.geometry.Offset(x, y)
 private fun androidx.compose.ui.geometry.Offset.toCore() = CoreOffset(x, y)
@@ -287,43 +289,145 @@ public fun BlockCanvas(
         // Grid layer — world-space: spacing scales with zoom so the grid feels
         // like part of the infinite canvas. Hidden below 4px screen spacing to
         // avoid sub-pixel clutter at very low zoom levels.
-        val grid = state.gridConfig
-        if (grid.type != GridType.None) {
+        val gridStyle = state.gridConfig.style
+        if (gridStyle !is GridStyle.None) {
             Canvas(modifier = Modifier.fillMaxSize()) {
-                val screenSpacing = grid.spacing * state.viewport.zoom
-                if (screenSpacing >= 4f) {
-                    val panX = state.viewport.pan.x % screenSpacing
-                    val panY = state.viewport.pan.y % screenSpacing
+                val screenSpacing = gridStyle.spacing * state.viewport.zoom
+                // Hide minor/all grid if too dense to avoid O(N) explosions and visual noise
+                val minThreshold = 8f
+                val drawMinor = screenSpacing >= minThreshold
+                val majorSpacing = if (gridStyle.majorEvery > 0) gridStyle.spacing * gridStyle.majorEvery else 0f
+                val majorScreenSpacing = majorSpacing * state.viewport.zoom
+                val drawMajor = gridStyle.majorEvery > 0 && majorScreenSpacing >= minThreshold
 
-                    if (grid.type == GridType.Lines) {
-                        var lx = if (panX > 0) panX - screenSpacing else panX
-                        while (lx < size.width) {
-                            drawLine(grid.gridColor, androidx.compose.ui.geometry.Offset(lx, 0f), androidx.compose.ui.geometry.Offset(lx, size.height), strokeWidth = 1f)
-                            lx += screenSpacing
-                        }
-                        var ly = if (panY > 0) panY - screenSpacing else panY
-                        while (ly < size.height) {
-                            drawLine(grid.gridColor, androidx.compose.ui.geometry.Offset(0f, ly), androidx.compose.ui.geometry.Offset(size.width, ly), strokeWidth = 1f)
-                            ly += screenSpacing
-                        }
-                    } else if (grid.type == GridType.Dots) {
-                        val points = mutableListOf<androidx.compose.ui.geometry.Offset>()
-                        var dx = if (panX > 0) panX - screenSpacing else panX
-                        while (dx < size.width) {
-                            var dy = if (panY > 0) panY - screenSpacing else panY
-                            while (dy < size.height) {
-                                points.add(androidx.compose.ui.geometry.Offset(dx, dy))
-                                dy += screenSpacing
+                if (drawMinor || drawMajor) {
+                    val range = calculateVisibleGridCells(state.viewport, gridStyle.spacing, size.width, size.height)
+                    val alphaScale = ((screenSpacing - minThreshold) / minThreshold).coerceIn(0f, 1f)
+
+                    when (gridStyle) {
+                        is GridStyle.Lines -> {
+                            // 1. Minor lines
+                            if (drawMinor) {
+                                val minorColor = gridStyle.color.copy(alpha = gridStyle.color.alpha * alphaScale)
+                                for (ix in range.startX..range.endX) {
+                                    if (gridStyle.majorEvery > 0 && ix % gridStyle.majorEvery == 0) continue
+                                    val screenX = ix * gridStyle.spacing * state.viewport.zoom + state.viewport.pan.x
+                                    drawLine(minorColor, androidx.compose.ui.geometry.Offset(screenX, 0f), androidx.compose.ui.geometry.Offset(screenX, size.height), strokeWidth = gridStyle.lineWidth)
+                                }
+                                for (iy in range.startY..range.endY) {
+                                    if (gridStyle.majorEvery > 0 && iy % gridStyle.majorEvery == 0) continue
+                                    val screenY = iy * gridStyle.spacing * state.viewport.zoom + state.viewport.pan.y
+                                    drawLine(minorColor, androidx.compose.ui.geometry.Offset(0f, screenY), androidx.compose.ui.geometry.Offset(size.width, screenY), strokeWidth = gridStyle.lineWidth)
+                                }
                             }
-                            dx += screenSpacing
+                            // 2. Major lines
+                            if (drawMajor) {
+                                val firstMajorIx = ceil(range.startX.toFloat() / gridStyle.majorEvery).toInt() * gridStyle.majorEvery
+                                for (ix in firstMajorIx..range.endX step gridStyle.majorEvery) {
+                                    val screenX = ix * gridStyle.spacing * state.viewport.zoom + state.viewport.pan.x
+                                    drawLine(gridStyle.majorColor, androidx.compose.ui.geometry.Offset(screenX, 0f), androidx.compose.ui.geometry.Offset(screenX, size.height), strokeWidth = gridStyle.lineWidth)
+                                }
+                                val firstMajorIy = ceil(range.startY.toFloat() / gridStyle.majorEvery).toInt() * gridStyle.majorEvery
+                                for (iy in firstMajorIy..range.endY step gridStyle.majorEvery) {
+                                    val screenY = iy * gridStyle.spacing * state.viewport.zoom + state.viewport.pan.y
+                                    drawLine(gridStyle.majorColor, androidx.compose.ui.geometry.Offset(0f, screenY), androidx.compose.ui.geometry.Offset(size.width, screenY), strokeWidth = gridStyle.lineWidth)
+                                }
+                            }
                         }
-                        drawPoints(
-                            points = points,
-                            pointMode = androidx.compose.ui.graphics.PointMode.Points,
-                            color = grid.gridColor,
-                            strokeWidth = 2.dp.toPx(),
-                            cap = StrokeCap.Round
-                        )
+
+                        is GridStyle.Dots -> {
+                            val dotSize = gridStyle.dotRadius * 2
+
+                            // 1. Minor dots
+                            if (drawMinor) {
+                                val minorColor = gridStyle.color.copy(alpha = gridStyle.color.alpha * alphaScale)
+                                val minorEffect = PathEffect.dashPathEffect(floatArrayOf(dotSize, screenSpacing - dotSize), 0f)
+                                val screenStartX = range.startX * gridStyle.spacing * state.viewport.zoom + state.viewport.pan.x
+                                val screenEndX = range.endX * gridStyle.spacing * state.viewport.zoom + state.viewport.pan.x
+
+                                for (iy in range.startY..range.endY) {
+                                    val screenY = iy * gridStyle.spacing * state.viewport.zoom + state.viewport.pan.y
+                                    drawLine(
+                                        color = minorColor,
+                                        start = androidx.compose.ui.geometry.Offset(screenStartX, screenY),
+                                        end = androidx.compose.ui.geometry.Offset(screenEndX, screenY),
+                                        strokeWidth = dotSize,
+                                        cap = StrokeCap.Round,
+                                        pathEffect = minorEffect
+                                    )
+                                }
+                            }
+
+                            // 2. Major dots
+                            if (drawMajor) {
+                                val majorEffect = PathEffect.dashPathEffect(floatArrayOf(dotSize, majorScreenSpacing - dotSize), 0f)
+                                val firstMajorIx = ceil(range.startX.toFloat() / gridStyle.majorEvery).toInt() * gridStyle.majorEvery
+                                val majorScreenStartX = firstMajorIx * gridStyle.spacing * state.viewport.zoom + state.viewport.pan.x
+                                val screenEndX = range.endX * gridStyle.spacing * state.viewport.zoom + state.viewport.pan.x
+
+                                val firstMajorIy = ceil(range.startY.toFloat() / gridStyle.majorEvery).toInt() * gridStyle.majorEvery
+                                for (iy in firstMajorIy..range.endY step gridStyle.majorEvery) {
+                                    val screenY = iy * gridStyle.spacing * state.viewport.zoom + state.viewport.pan.y
+                                    drawLine(
+                                        color = gridStyle.majorColor,
+                                        start = androidx.compose.ui.geometry.Offset(majorScreenStartX, screenY),
+                                        end = androidx.compose.ui.geometry.Offset(screenEndX, screenY),
+                                        strokeWidth = dotSize,
+                                        cap = StrokeCap.Round,
+                                        pathEffect = majorEffect
+                                    )
+                                }
+                            }
+                        }
+
+                        is GridStyle.Crosses -> {
+                            val halfSize = gridStyle.size / 2f
+                            val screenStartX = range.startX * gridStyle.spacing * state.viewport.zoom + state.viewport.pan.x
+                            val screenEndX = range.endX * gridStyle.spacing * state.viewport.zoom + state.viewport.pan.x
+                            val screenStartY = range.startY * gridStyle.spacing * state.viewport.zoom + state.viewport.pan.y
+                            val screenEndY = range.endY * gridStyle.spacing * state.viewport.zoom + state.viewport.pan.y
+
+                            // 1. Minor crosses
+                            if (drawMinor) {
+                                val minorColor = gridStyle.color.copy(alpha = gridStyle.color.alpha * alphaScale)
+                                val dashEffect = PathEffect.dashPathEffect(floatArrayOf(gridStyle.size, screenSpacing - gridStyle.size), 0f)
+
+                                // Horizontal segments
+                                for (iy in range.startY..range.endY) {
+                                    if (gridStyle.majorEvery > 0 && iy % gridStyle.majorEvery == 0) continue
+                                    val screenY = iy * gridStyle.spacing * state.viewport.zoom + state.viewport.pan.y
+                                    drawLine(minorColor, androidx.compose.ui.geometry.Offset(screenStartX - halfSize, screenY), androidx.compose.ui.geometry.Offset(screenEndX + halfSize, screenY), strokeWidth = gridStyle.thickness, pathEffect = dashEffect)
+                                }
+                                // Vertical segments
+                                for (ix in range.startX..range.endX) {
+                                    if (gridStyle.majorEvery > 0 && ix % gridStyle.majorEvery == 0) continue
+                                    val screenX = ix * gridStyle.spacing * state.viewport.zoom + state.viewport.pan.x
+                                    drawLine(minorColor, androidx.compose.ui.geometry.Offset(screenX, screenStartY - halfSize), androidx.compose.ui.geometry.Offset(screenX, screenEndY + halfSize), strokeWidth = gridStyle.thickness, pathEffect = dashEffect)
+                                }
+                            }
+
+                            // 2. Major crosses
+                            if (drawMajor) {
+                                val dashEffect = PathEffect.dashPathEffect(floatArrayOf(gridStyle.size, majorScreenSpacing - gridStyle.size), 0f)
+                                val firstMajorIx = ceil(range.startX.toFloat() / gridStyle.majorEvery).toInt() * gridStyle.majorEvery
+                                val majorScreenStartX = firstMajorIx * gridStyle.spacing * state.viewport.zoom + state.viewport.pan.x
+                                val firstMajorIy = ceil(range.startY.toFloat() / gridStyle.majorEvery).toInt() * gridStyle.majorEvery
+                                val majorScreenStartY = firstMajorIy * gridStyle.spacing * state.viewport.zoom + state.viewport.pan.y
+
+                                // Horizontal
+                                for (iy in firstMajorIy..range.endY step gridStyle.majorEvery) {
+                                    val screenY = iy * gridStyle.spacing * state.viewport.zoom + state.viewport.pan.y
+                                    drawLine(gridStyle.majorColor, androidx.compose.ui.geometry.Offset(majorScreenStartX - halfSize, screenY), androidx.compose.ui.geometry.Offset(screenEndX + halfSize, screenY), strokeWidth = gridStyle.thickness, pathEffect = dashEffect)
+                                }
+                                // Vertical
+                                for (ix in firstMajorIx..range.endX step gridStyle.majorEvery) {
+                                    val screenX = ix * gridStyle.spacing * state.viewport.zoom + state.viewport.pan.x
+                                    drawLine(gridStyle.majorColor, androidx.compose.ui.geometry.Offset(screenX, majorScreenStartY - halfSize), androidx.compose.ui.geometry.Offset(screenX, screenEndY + halfSize), strokeWidth = gridStyle.thickness, pathEffect = dashEffect)
+                                }
+                            }
+                        }
+                        
+                        GridStyle.None -> { /* Handled by outer check */ }
                     }
                 }
             }
