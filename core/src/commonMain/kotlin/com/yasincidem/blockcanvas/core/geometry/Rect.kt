@@ -48,13 +48,36 @@ public data class Rect(
      * Returns `true` when [point] lies inside this rectangle under the
      * half-open `[left, right) × [top, bottom)` convention.
      */
+    /**
+     * Returns `true` when [point] lies inside this rectangle under the
+     * half-open `[left, right) × [top, bottom)` convention.
+     */
     public fun contains(point: Offset): Boolean =
         point.x >= left && point.x < right &&
             point.y >= top && point.y < bottom
+
+    /**
+     * Returns true if this rectangle intersects [other].
+     */
+    public fun intersects(other: Rect): Boolean =
+        left < other.right && right > other.left &&
+            top < other.bottom && bottom > other.top
 
     public companion object {
         /** Degenerate zero-area rectangle at the origin. Contains no points. */
         @JvmStatic
         public val Zero: Rect = Rect(0f, 0f, 0f, 0f)
+
+        /**
+         * Creates a [Rect] defined by two arbitrary points [p1] and [p2].
+         * The points are sorted to ensure [left] <= [right] and [top] <= [bottom].
+         */
+        @JvmStatic
+        public fun fromPoints(p1: Offset, p2: Offset): Rect = Rect(
+            left = minOf(p1.x, p2.x),
+            top = minOf(p1.y, p2.y),
+            right = maxOf(p1.x, p2.x),
+            bottom = maxOf(p1.y, p2.y)
+        )
     }
 }

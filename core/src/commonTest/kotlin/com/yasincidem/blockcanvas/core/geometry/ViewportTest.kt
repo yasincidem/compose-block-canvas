@@ -38,8 +38,15 @@ class ViewportTest {
     @Test
     fun `reject zoom above maximum`() {
         assertFailsWith<IllegalArgumentException> {
-            Viewport(zoom = Viewport.MAX_ZOOM + 1f)
+            Viewport(zoom = Viewport.DEFAULT_MAX_ZOOM + 1f)
         }
+    }
+
+    @Test
+    fun `custom zoom limits are respected`() {
+        val vp = Viewport(zoom = 1f, minZoom = 0.5f, maxZoom = 2f)
+        assertEquals(0.5f, vp.withZoom(0.1f, Offset.Zero).zoom)
+        assertEquals(2f, vp.withZoom(5f, Offset.Zero).zoom)
     }
 
     // ── worldToScreen ─────────────────────────────────────────────────────────
@@ -135,14 +142,14 @@ class ViewportTest {
     fun `withZoom clamps to minimum`() {
         val vp = Viewport()
         val clamped = vp.withZoom(0f, anchor = Offset.Zero)
-        assertEquals(Viewport.MIN_ZOOM, clamped.zoom)
+        assertEquals(Viewport.DEFAULT_MIN_ZOOM, clamped.zoom)
     }
 
     @Test
     fun `withZoom clamps to maximum`() {
         val vp = Viewport()
-        val clamped = vp.withZoom(Viewport.MAX_ZOOM + 10f, anchor = Offset.Zero)
-        assertEquals(Viewport.MAX_ZOOM, clamped.zoom)
+        val clamped = vp.withZoom(Viewport.DEFAULT_MAX_ZOOM + 10f, anchor = Offset.Zero)
+        assertEquals(Viewport.DEFAULT_MAX_ZOOM, clamped.zoom)
     }
 
     @Test

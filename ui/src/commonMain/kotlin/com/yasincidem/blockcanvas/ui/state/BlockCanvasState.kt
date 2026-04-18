@@ -43,8 +43,15 @@ public class BlockCanvasState(
     public var defaultTargetEnd: EdgeEnd = EdgeEnd.Arrow(),
     public var defaultEdgeStroke: EdgeStroke = EdgeStroke.Solid(),
     public var defaultEdgeAnimation: EdgeAnimation = EdgeAnimation.None,
+    public var marqueeStyle: MarqueeStyle = MarqueeStyle(),
 ) {
     public var gridConfig: GridConfig by mutableStateOf(initialGridConfig)
+
+    public var isSpacePressed: Boolean by mutableStateOf(false)
+        internal set
+
+    public var interaction: CanvasInteraction by mutableStateOf(CanvasInteraction.Idle)
+        internal set
 
     public var canvasState: CanvasState by mutableStateOf(initialCanvasState)
         private set
@@ -159,6 +166,20 @@ public class BlockCanvasState(
         viewport = new
     }
 
+    /** Zooms in by [step] factor, anchored to [anchor] in screen space. */
+    public fun zoomIn(anchor: Offset = Offset.Zero, step: Float = DEFAULT_ZOOM_STEP) {
+        viewport = viewport.withZoom(viewport.zoom + step, anchor)
+    }
+
+    /** Zooms out by [step] factor, anchored to [anchor] in screen space. */
+    public fun zoomOut(anchor: Offset = Offset.Zero, step: Float = DEFAULT_ZOOM_STEP) {
+        viewport = viewport.withZoom(viewport.zoom - step, anchor)
+    }
+
+    public companion object {
+        public const val DEFAULT_ZOOM_STEP: Float = 0.1f
+    }
+
     // ── Snapping ──────────────────────────────────────────────────────────────
 
     /**
@@ -264,13 +285,51 @@ public class BlockCanvasState(
     public fun selectOnly(id: NodeId)      { selectionState = selectionState.selectOnly(id) }
     public fun selectOnly(id: EdgeId)      { selectionState = selectionState.selectOnly(id) }
     public fun clearSelection()            { selectionState = selectionState.clear() }
+
+    // ── Marquee Selection ─────────────────────────────────────────────────────
+
+    internal fun startMarquee(start: Offset, mode: MarqueeMode) {
+        interaction = CanvasInteraction.MarqueeSelecting(start, start, mode)
+    }
+
+    internal fun updateMarquee(current: Offset) {
+        val currentInteraction = interaction
+        if (currentInteraction is CanvasInteraction.MarqueeSelecting) {
+            interaction = currentInteraction.copy(current = current)
+        }
+    }
+
+    internal fun commitMarquee() {
+        val currentInteraction = interaction
+        if (currentInteraction is CanvasInteraction.MarqueeSelecting) {
+            resolveMarqueeSelection(currentInteraction)
+            interaction = CanvasInteraction.Idle
+        }
+    }
+
+    internal fun cancelMarquee() {
+        interaction = CanvasInteraction.Idle
+    }
+
+    private fun resolveMarqueeSelection(marquee: CanvasInteraction.MarqueeSelecting) {
+        val rect = com.yasincidem.blockcanvas.core.geometry.Rect.fromPoints(marquee.start, marquee.current)
+        val hits = canvasState.nodes.values.filter { it.boundingBox.intersects(rect) }.map { it.id }.toSet()
+
+        selectionState = when (marquee.mode) {
+            MarqueeMode.Replace -> SelectionState(selectedNodes = hits)
+            MarqueeMode.Add -> selectionState.copy(selectedNodes = selectionState.selectedNodes + hits)
+            MarqueeMode.Subtract -> selectionState.copy(selectedNodes = selectionState.selectedNodes - hits)
+        }
+    }
 }
 
 @Composable
 public fun rememberBlockCanvasState(
     initialCanvasState: CanvasState = CanvasState(),
     initialSelectionState: SelectionState = SelectionState(),
-    initialViewport: Viewport = Viewport.Default,
+    minZoom: Float = Viewport.DEFAULT_MIN_ZOOM,
+    maxZoom: Float = Viewport.DEFAULT_MAX_ZOOM,
+    initialViewport: Viewport = Viewport.Default.copy(minZoom = minZoom, maxZoom = maxZoom),
     gridConfig: GridConfig = GridConfig.Default,
     connectionValidator: ConnectionValidator = DefaultConnectionValidator(),
 ): BlockCanvasState {

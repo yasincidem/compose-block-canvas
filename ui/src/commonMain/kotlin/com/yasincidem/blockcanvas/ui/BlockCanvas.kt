@@ -27,14 +27,25 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.isAltPressed
 import androidx.compose.ui.input.pointer.isShiftPressed
+import androidx.compose.ui.input.pointer.isSecondaryPressed
+import androidx.compose.ui.input.pointer.isTertiaryPressed
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.foundation.focusable
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import com.yasincidem.blockcanvas.ui.state.CanvasInteraction
+import com.yasincidem.blockcanvas.ui.state.MarqueeMode
 import com.yasincidem.blockcanvas.core.alignment.Axis
 import com.yasincidem.blockcanvas.core.alignment.DistanceLabel
 import com.yasincidem.blockcanvas.core.hittest.DefaultHitTester
@@ -84,6 +95,9 @@ private fun androidx.compose.ui.geometry.Offset.toCore() = CoreOffset(x, y)
  * @param alignmentGuideStyle   Visual style for alignment guide lines and distance labels.
  * @param nodeContent           Slot for rendering a single node. The container is already
  *                              sized; use [Modifier.fillMaxSize] inside.
+ *                              The third parameter is the current canvas scale (zoom),
+ *                              use [com.yasincidem.blockcanvas.ui.state.LodLevel.of] to
+ *                              implement semantic zoom / level-of-detail rendering.
  */
 @Composable
 public fun BlockCanvas(
@@ -91,7 +105,7 @@ public fun BlockCanvas(
     modifier: Modifier = Modifier,
     onConnectionAttempt: (from: EndPoint, to: EndPoint) -> Boolean = { _, _ -> true },
     alignmentGuideStyle: AlignmentGuideStyle = AlignmentGuideStyle.Default,
-    nodeContent: @Composable (node: Node, isSelected: Boolean) -> Unit,
+    nodeContent: @Composable (node: Node, isSelected: Boolean, scale: Float) -> Unit,
 ) {
     val density = LocalDensity.current
     val hitTester = remember { DefaultHitTester() }
@@ -116,6 +130,21 @@ public fun BlockCanvas(
 
     Box(
         modifier = modifier
+            .onKeyEvent { event ->
+                // Keep modifiers for desktop users
+                when {
+                    event.key == Key.Escape && event.type == KeyEventType.KeyDown -> {
+                        state.cancelMarquee()
+                        true
+                    }
+                    event.key == Key.Spacebar -> {
+                        state.isSpacePressed = event.type == KeyEventType.KeyDown
+                        true
+                    }
+                    else -> false
+                }
+            }
+            .focusable()
             // Pan / zoom — outer modifier, processed SECOND in Main pass.
             // detectTransformGestures checks `canceled = event.changes.any { it.isConsumed }` and
             // skips onGesture when the inner handler has already consumed the events.
@@ -185,6 +214,9 @@ public fun BlockCanvas(
                                 state.updatePendingConnection(curr)
                                 val d = change.position - change.previousPosition
                                 totalMovePx += kotlin.math.sqrt(d.x * d.x + d.y * d.y)
+
+                                if (ev.changes.size > 1) break // Abort Connection drag for Multi-touch zoom
+
                                 if (!change.pressed) {
                                     upHit = hitTester.hitTest(curr, state.canvasState.nodes.values)
                                     break
@@ -232,6 +264,20 @@ public fun BlockCanvas(
                             while (true) {
                                 val dragEvent = awaitPointerEvent()
                                 val change = dragEvent.changes.find { it.id == down.id } ?: break
+
+                                if (dragEvent.changes.size > 1) {
+                                    // Committing partial move so it doesn't jump back, but stopping drag logic
+                                    val finalPlacements = buildMap {
+                                        state.selectionState.selectedNodes.forEach { id ->
+                                            val pos = state.nodePositions[id]
+                                            if (pos != null) put(id, pos)
+                                        }
+                                    }
+                                    state.commitNodePositions(finalPlacements)
+                                    state.clearAlignmentResult()
+                                    break 
+                                }
+
                                 if (!change.pressed) {
                                     val finalPlacements = buildMap {
                                         state.selectionState.selectedNodes.forEach { id ->
@@ -276,8 +322,92 @@ public fun BlockCanvas(
                                 down.consume()
                                 return@awaitEachGesture
                             }
-                            if (!isShiftPressed) state.clearSelection()
-                            /* fall through to pan/zoom */
+
+                            val isRightClick = event.buttons.isSecondaryPressed
+                            val isMiddleClick = event.buttons.isTertiaryPressed
+                            val isExplicitPan = state.isSpacePressed || isRightClick || isMiddleClick
+
+                            val marqueeMode = when {
+                                event.keyboardModifiers.isShiftPressed -> MarqueeMode.Add
+                                event.keyboardModifiers.isAltPressed -> MarqueeMode.Subtract
+                                else -> MarqueeMode.Replace
+                            }
+
+                            val startUptime = event.changes.first().uptimeMillis
+                            val longPressThreshold = 400L // 400ms hold to trigger marquee on mobile
+                            var activeInteraction: CanvasInteraction = CanvasInteraction.Idle
+                            var totalMovePx = 0f
+
+                            while (true) {
+                                val currentEvent = awaitPointerEvent()
+                                val change = currentEvent.changes.find { it.id == down.id } ?: break
+
+                                if (!change.pressed) {
+                                    if (activeInteraction is CanvasInteraction.MarqueeSelecting) {
+                                        state.commitMarquee()
+                                    } else if (activeInteraction == CanvasInteraction.Idle && totalMovePx < tapThresholdPx) {
+                                        // Quick tap on empty -> Clear selection
+                                        if (!event.keyboardModifiers.isShiftPressed) {
+                                            state.clearSelection()
+                                        }
+                                    }
+                                    state.interaction = CanvasInteraction.Idle
+                                    break
+                                }
+
+                                // Multi-touch always aborts our custom loop to favor detectTransformGestures
+                                if (currentEvent.changes.size > 1) {
+                                    state.interaction = CanvasInteraction.Idle
+                                    break
+                                }
+
+                                totalMovePx = sqrt(
+                                    (change.position - down.position).x * (change.position - down.position).x +
+                                    (change.position - down.position).y * (change.position - down.position).y
+                                )
+
+                                // Mode Arbitration
+                                if (activeInteraction == CanvasInteraction.Idle) {
+                                    val elapsed = currentEvent.changes.first().uptimeMillis - startUptime
+                                    
+                                    when {
+                                        // 1. Explicit pan (Space, Right click) takes precedence
+                                        isExplicitPan && totalMovePx > 2f -> {
+                                            activeInteraction = CanvasInteraction.Panning
+                                            state.interaction = CanvasInteraction.Panning
+                                        }
+                                        // 2. Long press reached while staying relatively still -> Marquee
+                                        elapsed >= longPressThreshold && totalMovePx < tapThresholdPx -> {
+                                            activeInteraction = CanvasInteraction.MarqueeSelecting(worldPos, worldPos, marqueeMode)
+                                            state.startMarquee(worldPos, marqueeMode)
+                                        }
+                                        // 3. Move threshold reached before long press -> Default to Pan on mobile
+                                        totalMovePx >= tapThresholdPx -> {
+                                            activeInteraction = CanvasInteraction.Panning
+                                            state.interaction = CanvasInteraction.Panning
+                                        }
+                                    }
+                                }
+
+                                when (activeInteraction) {
+                                    is CanvasInteraction.MarqueeSelecting -> {
+                                        change.consume()
+                                        val curr = state.viewport.screenToWorld(change.position.toCore())
+                                        state.updateMarquee(curr)
+                                    }
+                                    is CanvasInteraction.Panning -> {
+                                        change.consume()
+                                        val panDelta = (change.position - change.previousPosition).toCore()
+                                        state.updateViewport(state.viewport.withPan(state.viewport.pan + panDelta))
+                                    }
+                                    else -> {
+                                        // Mode not decided yet. 
+                                        // If mouse buttons are held, we might want to consume to prevent conflicts,
+                                        // but for touch, we stay silent to let detectTransformGestures initialize.
+                                        if (isExplicitPan) change.consume()
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -294,14 +424,19 @@ public fun BlockCanvas(
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val screenSpacing = gridStyle.spacing * state.viewport.zoom
                 // Hide minor/all grid if too dense to avoid O(N) explosions and visual noise
-                val minThreshold = 8f
+                val minThreshold = state.gridConfig.minThreshold
                 val drawMinor = screenSpacing >= minThreshold
-                val majorSpacing = if (gridStyle.majorEvery > 0) gridStyle.spacing * gridStyle.majorEvery else 0f
+                
+                val majorEvery = gridStyle.majorEvery
+                val majorSpacing = if (majorEvery > 0) gridStyle.spacing * majorEvery else 0f
                 val majorScreenSpacing = majorSpacing * state.viewport.zoom
-                val drawMajor = gridStyle.majorEvery > 0 && majorScreenSpacing >= minThreshold
+                val drawMajor = majorEvery > 0 && majorScreenSpacing >= minThreshold
 
                 if (drawMinor || drawMajor) {
-                    val range = calculateVisibleGridCells(state.viewport, gridStyle.spacing, size.width, size.height)
+                    // Optimization: If NOT drawing minor grid, calculate range based on major spacing
+                    // to avoid iterating over thousands of hidden minor cells.
+                    val calcSpacing = if (!drawMinor && drawMajor) majorSpacing else gridStyle.spacing
+                    val range = calculateVisibleGridCells(state.viewport, calcSpacing, size.width, size.height)
                     val alphaScale = ((screenSpacing - minThreshold) / minThreshold).coerceIn(0f, 1f)
 
                     when (gridStyle) {
@@ -310,34 +445,37 @@ public fun BlockCanvas(
                             if (drawMinor) {
                                 val minorColor = gridStyle.color.copy(alpha = gridStyle.color.alpha * alphaScale)
                                 for (ix in range.startX..range.endX) {
-                                    if (gridStyle.majorEvery > 0 && ix % gridStyle.majorEvery == 0) continue
+                                    if (majorEvery > 0 && ix % majorEvery == 0) continue
                                     val screenX = ix * gridStyle.spacing * state.viewport.zoom + state.viewport.pan.x
                                     drawLine(minorColor, androidx.compose.ui.geometry.Offset(screenX, 0f), androidx.compose.ui.geometry.Offset(screenX, size.height), strokeWidth = gridStyle.lineWidth)
                                 }
                                 for (iy in range.startY..range.endY) {
-                                    if (gridStyle.majorEvery > 0 && iy % gridStyle.majorEvery == 0) continue
+                                    if (majorEvery > 0 && iy % majorEvery == 0) continue
                                     val screenY = iy * gridStyle.spacing * state.viewport.zoom + state.viewport.pan.y
                                     drawLine(minorColor, androidx.compose.ui.geometry.Offset(0f, screenY), androidx.compose.ui.geometry.Offset(size.width, screenY), strokeWidth = gridStyle.lineWidth)
                                 }
                             }
                             // 2. Major lines
                             if (drawMajor) {
-                                val firstMajorIx = ceil(range.startX.toFloat() / gridStyle.majorEvery).toInt() * gridStyle.majorEvery
-                                for (ix in firstMajorIx..range.endX step gridStyle.majorEvery) {
+                                val majorAlpha = if (drawMinor) 1f else ((majorScreenSpacing - minThreshold) / minThreshold).coerceIn(0f, 1f)
+                                val majorColor = gridStyle.majorColor.copy(alpha = gridStyle.majorColor.alpha * majorAlpha)
+                                for (idx in range.startX..range.endX) {
+                                    // If drawMinor was false, idx is already a major index.
+                                    // If drawMinor was true, idx is a minor index and we filter for major.
+                                    val ix = if (!drawMinor) (idx * majorEvery) else (if (majorEvery > 0 && idx % majorEvery == 0) idx else continue)
                                     val screenX = ix * gridStyle.spacing * state.viewport.zoom + state.viewport.pan.x
-                                    drawLine(gridStyle.majorColor, androidx.compose.ui.geometry.Offset(screenX, 0f), androidx.compose.ui.geometry.Offset(screenX, size.height), strokeWidth = gridStyle.lineWidth)
+                                    drawLine(majorColor, androidx.compose.ui.geometry.Offset(screenX, 0f), androidx.compose.ui.geometry.Offset(screenX, size.height), strokeWidth = gridStyle.lineWidth * 1.5f)
                                 }
-                                val firstMajorIy = ceil(range.startY.toFloat() / gridStyle.majorEvery).toInt() * gridStyle.majorEvery
-                                for (iy in firstMajorIy..range.endY step gridStyle.majorEvery) {
+                                for (idy in range.startY..range.endY) {
+                                    val iy = if (!drawMinor) (idy * majorEvery) else (if (majorEvery > 0 && idy % majorEvery == 0) idy else continue)
                                     val screenY = iy * gridStyle.spacing * state.viewport.zoom + state.viewport.pan.y
-                                    drawLine(gridStyle.majorColor, androidx.compose.ui.geometry.Offset(0f, screenY), androidx.compose.ui.geometry.Offset(size.width, screenY), strokeWidth = gridStyle.lineWidth)
+                                    drawLine(majorColor, androidx.compose.ui.geometry.Offset(0f, screenY), androidx.compose.ui.geometry.Offset(size.width, screenY), strokeWidth = gridStyle.lineWidth * 1.5f)
                                 }
                             }
                         }
 
                         is GridStyle.Dots -> {
                             val dotSize = gridStyle.dotRadius * 2
-
                             // 1. Minor dots
                             if (drawMinor) {
                                 val minorColor = gridStyle.color.copy(alpha = gridStyle.color.alpha * alphaScale)
@@ -346,6 +484,10 @@ public fun BlockCanvas(
                                 val screenEndX = range.endX * gridStyle.spacing * state.viewport.zoom + state.viewport.pan.x
 
                                 for (iy in range.startY..range.endY) {
+                                    if (majorEvery > 0 && iy % majorEvery == 0) {
+                                        // Row contains major dots; we need to skip them in the dash effect or just draw carefully.
+                                        // For simplicity and performance, we'll draw the whole dashed line and let major dots overlap.
+                                    }
                                     val screenY = iy * gridStyle.spacing * state.viewport.zoom + state.viewport.pan.y
                                     drawLine(
                                         color = minorColor,
@@ -360,16 +502,20 @@ public fun BlockCanvas(
 
                             // 2. Major dots
                             if (drawMajor) {
+                                val majorAlpha = if (drawMinor) 1f else ((majorScreenSpacing - minThreshold) / minThreshold).coerceIn(0f, 1f)
+                                val majorColor = gridStyle.majorColor.copy(alpha = gridStyle.majorColor.alpha * majorAlpha)
                                 val majorEffect = PathEffect.dashPathEffect(floatArrayOf(dotSize, majorScreenSpacing - dotSize), 0f)
-                                val firstMajorIx = ceil(range.startX.toFloat() / gridStyle.majorEvery).toInt() * gridStyle.majorEvery
+                                
+                                val firstMajorIx = if (!drawMinor) range.startX * majorEvery else ceil(range.startX.toFloat() / majorEvery).toInt() * majorEvery
                                 val majorScreenStartX = firstMajorIx * gridStyle.spacing * state.viewport.zoom + state.viewport.pan.x
-                                val screenEndX = range.endX * gridStyle.spacing * state.viewport.zoom + state.viewport.pan.x
+                                val screenEndX = range.endX * (if (!drawMinor) majorSpacing else gridStyle.spacing) * state.viewport.zoom + state.viewport.pan.x
 
-                                val firstMajorIy = ceil(range.startY.toFloat() / gridStyle.majorEvery).toInt() * gridStyle.majorEvery
-                                for (iy in firstMajorIy..range.endY step gridStyle.majorEvery) {
-                                    val screenY = iy * gridStyle.spacing * state.viewport.zoom + state.viewport.pan.y
+                                val firstMajorIy = if (!drawMinor) range.startY * majorEvery else ceil(range.startY.toFloat() / majorEvery).toInt() * majorEvery
+                                for (iy in (if (!drawMinor) range.startY else (firstMajorIy / majorEvery))..(if (!drawMinor) range.endY else (range.endY / majorEvery))) {
+                                    val yIndex = iy * majorEvery
+                                    val screenY = yIndex * gridStyle.spacing * state.viewport.zoom + state.viewport.pan.y
                                     drawLine(
-                                        color = gridStyle.majorColor,
+                                        color = majorColor,
                                         start = androidx.compose.ui.geometry.Offset(majorScreenStartX, screenY),
                                         end = androidx.compose.ui.geometry.Offset(screenEndX, screenY),
                                         strokeWidth = dotSize,
@@ -382,52 +528,38 @@ public fun BlockCanvas(
 
                         is GridStyle.Crosses -> {
                             val halfSize = gridStyle.size / 2f
-                            val screenStartX = range.startX * gridStyle.spacing * state.viewport.zoom + state.viewport.pan.x
-                            val screenEndX = range.endX * gridStyle.spacing * state.viewport.zoom + state.viewport.pan.x
-                            val screenStartY = range.startY * gridStyle.spacing * state.viewport.zoom + state.viewport.pan.y
-                            val screenEndY = range.endY * gridStyle.spacing * state.viewport.zoom + state.viewport.pan.y
+                            val actualRangeSpacing = if (!drawMinor) majorSpacing else gridStyle.spacing
+                            val screenStartX = range.startX * actualRangeSpacing * state.viewport.zoom + state.viewport.pan.x
+                            val screenEndX = range.endX * actualRangeSpacing * state.viewport.zoom + state.viewport.pan.x
+                            val screenStartY = range.startY * actualRangeSpacing * state.viewport.zoom + state.viewport.pan.y
+                            val screenEndY = range.endY * actualRangeSpacing * state.viewport.zoom + state.viewport.pan.y
 
-                            // 1. Minor crosses
                             if (drawMinor) {
-                                val minorColor = gridStyle.color.copy(alpha = gridStyle.color.alpha * alphaScale)
+                                val color = gridStyle.color.copy(alpha = gridStyle.color.alpha * alphaScale)
                                 val dashEffect = PathEffect.dashPathEffect(floatArrayOf(gridStyle.size, screenSpacing - gridStyle.size), 0f)
-
-                                // Horizontal segments
                                 for (iy in range.startY..range.endY) {
-                                    if (gridStyle.majorEvery > 0 && iy % gridStyle.majorEvery == 0) continue
                                     val screenY = iy * gridStyle.spacing * state.viewport.zoom + state.viewport.pan.y
-                                    drawLine(minorColor, androidx.compose.ui.geometry.Offset(screenStartX - halfSize, screenY), androidx.compose.ui.geometry.Offset(screenEndX + halfSize, screenY), strokeWidth = gridStyle.thickness, pathEffect = dashEffect)
+                                    drawLine(color, androidx.compose.ui.geometry.Offset(screenStartX - halfSize, screenY), androidx.compose.ui.geometry.Offset(screenEndX + halfSize, screenY), strokeWidth = gridStyle.thickness, pathEffect = dashEffect)
                                 }
-                                // Vertical segments
                                 for (ix in range.startX..range.endX) {
-                                    if (gridStyle.majorEvery > 0 && ix % gridStyle.majorEvery == 0) continue
                                     val screenX = ix * gridStyle.spacing * state.viewport.zoom + state.viewport.pan.x
-                                    drawLine(minorColor, androidx.compose.ui.geometry.Offset(screenX, screenStartY - halfSize), androidx.compose.ui.geometry.Offset(screenX, screenEndY + halfSize), strokeWidth = gridStyle.thickness, pathEffect = dashEffect)
+                                    drawLine(color, androidx.compose.ui.geometry.Offset(screenX, screenStartY - halfSize), androidx.compose.ui.geometry.Offset(screenX, screenEndY + halfSize), strokeWidth = gridStyle.thickness, pathEffect = dashEffect)
                                 }
-                            }
-
-                            // 2. Major crosses
-                            if (drawMajor) {
+                            } else {
+                                val majorAlpha = ((majorScreenSpacing - minThreshold) / minThreshold).coerceIn(0f, 1f)
+                                val color = gridStyle.majorColor.copy(alpha = gridStyle.majorColor.alpha * majorAlpha)
                                 val dashEffect = PathEffect.dashPathEffect(floatArrayOf(gridStyle.size, majorScreenSpacing - gridStyle.size), 0f)
-                                val firstMajorIx = ceil(range.startX.toFloat() / gridStyle.majorEvery).toInt() * gridStyle.majorEvery
-                                val majorScreenStartX = firstMajorIx * gridStyle.spacing * state.viewport.zoom + state.viewport.pan.x
-                                val firstMajorIy = ceil(range.startY.toFloat() / gridStyle.majorEvery).toInt() * gridStyle.majorEvery
-                                val majorScreenStartY = firstMajorIy * gridStyle.spacing * state.viewport.zoom + state.viewport.pan.y
-
-                                // Horizontal
-                                for (iy in firstMajorIy..range.endY step gridStyle.majorEvery) {
-                                    val screenY = iy * gridStyle.spacing * state.viewport.zoom + state.viewport.pan.y
-                                    drawLine(gridStyle.majorColor, androidx.compose.ui.geometry.Offset(majorScreenStartX - halfSize, screenY), androidx.compose.ui.geometry.Offset(screenEndX + halfSize, screenY), strokeWidth = gridStyle.thickness, pathEffect = dashEffect)
+                                for (iy in range.startY..range.endY) {
+                                    val screenY = iy * majorSpacing * state.viewport.zoom + state.viewport.pan.y
+                                    drawLine(color, androidx.compose.ui.geometry.Offset(screenStartX - halfSize, screenY), androidx.compose.ui.geometry.Offset(screenEndX + halfSize, screenY), strokeWidth = gridStyle.thickness, pathEffect = dashEffect)
                                 }
-                                // Vertical
-                                for (ix in firstMajorIx..range.endX step gridStyle.majorEvery) {
-                                    val screenX = ix * gridStyle.spacing * state.viewport.zoom + state.viewport.pan.x
-                                    drawLine(gridStyle.majorColor, androidx.compose.ui.geometry.Offset(screenX, majorScreenStartY - halfSize), androidx.compose.ui.geometry.Offset(screenX, screenEndY + halfSize), strokeWidth = gridStyle.thickness, pathEffect = dashEffect)
+                                for (ix in range.startX..range.endX) {
+                                    val screenX = ix * majorSpacing * state.viewport.zoom + state.viewport.pan.x
+                                    drawLine(color, androidx.compose.ui.geometry.Offset(screenX, screenStartY - halfSize), androidx.compose.ui.geometry.Offset(screenX, screenEndY + halfSize), strokeWidth = gridStyle.thickness, pathEffect = dashEffect)
                                 }
                             }
                         }
-                        
-                        GridStyle.None -> { /* Handled by outer check */ }
+                        GridStyle.None -> {}
                     }
                 }
             }
@@ -515,6 +647,32 @@ public fun BlockCanvas(
                     canvasSize = size,
                 )
             }
+
+            // ── Marquee Selection Overlay ─────────────────────────────────────
+            val interaction = state.interaction
+            if (interaction is CanvasInteraction.MarqueeSelecting) {
+                val rectWorld = com.yasincidem.blockcanvas.core.geometry.Rect.fromPoints(
+                    interaction.start,
+                    interaction.current
+                )
+                val rectScreen = androidx.compose.ui.geometry.Rect(
+                    state.viewport.worldToScreen(CoreOffset(rectWorld.left, rectWorld.top)).toCompose(),
+                    state.viewport.worldToScreen(CoreOffset(rectWorld.right, rectWorld.bottom)).toCompose()
+                )
+                val style = state.marqueeStyle
+                drawRect(
+                    color = style.fillColor,
+                    topLeft = rectScreen.topLeft,
+                    size = rectScreen.size
+                )
+                val dashPathEffect = PathEffect.dashPathEffect(style.borderDashPattern, 0f)
+                drawRect(
+                    color = style.borderColor,
+                    topLeft = rectScreen.topLeft,
+                    size = rectScreen.size,
+                    style = Stroke(width = 1.dp.toPx(), pathEffect = dashPathEffect)
+                )
+            }
         }
 
         // Node layer — viewport applied via graphicsLayer (no per-node gesture handling needed).
@@ -547,7 +705,7 @@ public fun BlockCanvas(
                         )
                 ) {
                     val isSelected = state.selectionState.isSelected(node.id)
-                    nodeContent(node, isSelected)
+                    nodeContent(node, isSelected, state.viewport.zoom)
                 }
             }
         }
@@ -606,7 +764,7 @@ private fun DrawScope.drawEdgePath(
             val stroke = if (isPending) {
                 Stroke(width = 2.5f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 6f)))
             } else {
-                edgeStrokeToCompose(edgeStroke)
+                edgeStrokeToCompose(edgeStroke, viewport.zoom)
             }
             drawPath(path, color = color, style = stroke)
 
@@ -677,20 +835,27 @@ private fun evalBezier(
 }
 
 /**
- * Maps [EdgeStroke] to a Compose [Stroke]. Intervals are in screen space so
- * dash/dot patterns stay visually consistent at any zoom level.
+ * Maps [EdgeStroke] to a Compose [Stroke].
+ *
+ * Stroke width is scaled by [zoom] so edges remain visually consistent across
+ * zoom levels, with a minimum of 1px so they never disappear entirely.
+ * Dash/dot intervals are kept in screen space (not scaled) so patterns stay
+ * visually readable at any zoom level.
  */
-private fun edgeStrokeToCompose(s: EdgeStroke): Stroke = when (s) {
-    is EdgeStroke.Solid  -> Stroke(width = s.width)
-    is EdgeStroke.Dashed -> Stroke(
-        width = s.width,
-        pathEffect = PathEffect.dashPathEffect(floatArrayOf(s.dashLength, s.gapLength), 0f),
-    )
-    is EdgeStroke.Dotted -> Stroke(
-        width = s.width,
-        cap = StrokeCap.Round,
-        pathEffect = PathEffect.dashPathEffect(floatArrayOf(s.width, s.gapLength), 0f),
-    )
+private fun edgeStrokeToCompose(s: EdgeStroke, zoom: Float): Stroke {
+    val w = (s.width * zoom).coerceAtLeast(1f)
+    return when (s) {
+        is EdgeStroke.Solid  -> Stroke(width = w)
+        is EdgeStroke.Dashed -> Stroke(
+            width = w,
+            pathEffect = PathEffect.dashPathEffect(floatArrayOf(s.dashLength, s.gapLength), 0f),
+        )
+        is EdgeStroke.Dotted -> Stroke(
+            width = w,
+            cap = StrokeCap.Round,
+            pathEffect = PathEffect.dashPathEffect(floatArrayOf(w, s.gapLength), 0f),
+        )
+    }
 }
 
 /** Returns how many screen px the stroke end should be inset to sit flush with the decoration. */

@@ -16,10 +16,15 @@ import kotlinx.serialization.Serializable
 public data class Viewport(
     val pan: Offset = Offset.Zero,
     val zoom: Float = 1f,
+    val minZoom: Float = DEFAULT_MIN_ZOOM,
+    val maxZoom: Float = DEFAULT_MAX_ZOOM,
 ) {
     init {
-        require(zoom in MIN_ZOOM..MAX_ZOOM) {
-            "zoom must be in [$MIN_ZOOM, $MAX_ZOOM] but was $zoom"
+        require(zoom in minZoom..maxZoom) {
+            "zoom must be in [$minZoom, $maxZoom] but was $zoom"
+        }
+        require(minZoom <= maxZoom) {
+            "minZoom ($minZoom) must be <= maxZoom ($maxZoom)"
         }
     }
 
@@ -35,20 +40,20 @@ public data class Viewport(
     public fun withPan(newPan: Offset): Viewport = copy(pan = newPan)
 
     /**
-     * Returns a new [Viewport] zoomed to [newZoom], clamped to [[MIN_ZOOM], [MAX_ZOOM]].
+     * Returns a new [Viewport] zoomed to [newZoom], clamped to [[minZoom], [maxZoom]].
      *
      * The [anchor] (a screen-space point) remains stationary after the zoom.
      */
     public fun withZoom(newZoom: Float, anchor: Offset): Viewport {
-        val clampedZoom = newZoom.coerceIn(MIN_ZOOM, MAX_ZOOM)
+        val clampedZoom = newZoom.coerceIn(minZoom, maxZoom)
         val worldAtAnchor = screenToWorld(anchor)
         val newPan = anchor - worldAtAnchor * clampedZoom
-        return Viewport(pan = newPan, zoom = clampedZoom)
+        return copy(pan = newPan, zoom = clampedZoom)
     }
 
     public companion object {
-        public const val MIN_ZOOM: Float = 0.1f
-        public const val MAX_ZOOM: Float = 10f
+        public const val DEFAULT_MIN_ZOOM: Float = 0.2f
+        public const val DEFAULT_MAX_ZOOM: Float = 2f
 
         public val Default: Viewport = Viewport()
     }

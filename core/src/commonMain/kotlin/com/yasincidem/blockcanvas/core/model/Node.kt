@@ -45,4 +45,15 @@ public data class Node(
             "Node '${id.value}' declares duplicate PortId '${duplicate?.value}'"
         }
     }
+
+    /**
+     * Bounding box of the node in canvas world coordinates.
+     */
+    public val boundingBox: com.yasincidem.blockcanvas.core.geometry.Rect
+        get() = com.yasincidem.blockcanvas.core.geometry.Rect(
+            left = position.x,
+            top = position.y,
+            right = position.x + width,
+            bottom = position.y + height
+        )
 }

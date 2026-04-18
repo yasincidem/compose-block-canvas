@@ -11,6 +11,7 @@ public data class GridConfig(
     val style: GridStyle = GridStyle.Dots(),
     val snapToGrid: Boolean = false,
     val backgroundColor: Color = Color(0xFF_0F0F1A),
+    val minThreshold: Float = 24f,
 ) {
     public companion object {
         public val Default: GridConfig = GridConfig()
