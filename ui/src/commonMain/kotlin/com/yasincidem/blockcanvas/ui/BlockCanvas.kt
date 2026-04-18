@@ -1,5 +1,6 @@
 package com.yasincidem.blockcanvas.ui
 
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
@@ -56,12 +57,22 @@ public fun BlockCanvas(
         ) {
             state.canvasState.nodes.values.forEach { node ->
                 Box(
-                    modifier = Modifier.offset {
-                        IntOffset(
-                            x = node.position.x.roundToInt(),
-                            y = node.position.y.roundToInt(),
-                        )
-                    }
+                    modifier = Modifier
+                        .offset {
+                            IntOffset(
+                                x = node.position.x.roundToInt(),
+                                y = node.position.y.roundToInt(),
+                            )
+                        }
+                        .pointerInput(node.id) {
+                            detectDragGestures { _, dragAmount ->
+                                // dragAmount is in screen pixels; divide by zoom to get world delta
+                                val worldDelta = dragAmount.toCore() / state.viewport.zoom
+                                val current = state.canvasState.nodes[node.id]?.position
+                                    ?: return@detectDragGestures
+                                state.moveNode(node.id, current + worldDelta)
+                            }
+                        }
                 ) {
                     nodeContent(node)
                 }

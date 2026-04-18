@@ -317,6 +317,7 @@ public final class com/yasincidem/blockcanvas/core/state/CanvasState {
 	public final fun getEdges ()Ljava/util/Map;
 	public final fun getNodes ()Ljava/util/Map;
 	public fun hashCode ()I
+	public final fun moveNode-vHiRkdI (Ljava/lang/String;Lcom/yasincidem/blockcanvas/core/geometry/Offset;)Lcom/yasincidem/blockcanvas/core/state/CanvasState;
 	public final fun removeEdge-lEqb4Is (Ljava/lang/String;)Lcom/yasincidem/blockcanvas/core/state/CanvasState;
 	public final fun removeNode-UUhBwN4 (Ljava/lang/String;)Lcom/yasincidem/blockcanvas/core/state/CanvasState;
 	public fun toString ()Ljava/lang/String;

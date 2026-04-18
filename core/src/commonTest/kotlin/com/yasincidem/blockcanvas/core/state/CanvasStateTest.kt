@@ -112,6 +112,38 @@ class CanvasStateTest {
     }
 
     @Test
+    fun `moveNode updates the node position`() {
+        val newPos = Offset(50f, 75f)
+        val state = CanvasState().addNode(node1).moveNode(node1.id, newPos)
+        assertEquals(newPos, state.nodes[node1.id]?.position)
+    }
+
+    @Test
+    fun `moveNode preserves all other node fields`() {
+        val state = CanvasState().addNode(node1).moveNode(node1.id, Offset(10f, 20f))
+        val moved = state.nodes[node1.id]!!
+        assertEquals(node1.id, moved.id)
+        assertEquals(node1.width, moved.width)
+        assertEquals(node1.height, moved.height)
+        assertEquals(node1.ports, moved.ports)
+    }
+
+    @Test
+    fun `moveNode on unknown id is a no-op`() {
+        val state = CanvasState().addNode(node1)
+        val after = state.moveNode(NodeId("unknown"), Offset(1f, 1f))
+        assertEquals(state, after)
+    }
+
+    @Test
+    fun `moveNode does not affect edges`() {
+        val state = CanvasState()
+            .addNode(node1).addNode(node2).addEdge(edge)
+            .moveNode(node1.id, Offset(999f, 999f))
+        assertEquals(1, state.edges.size)
+    }
+
+    @Test
     fun `removeEdge removes an edge`() {
         val state = CanvasState()
             .addNode(node1)

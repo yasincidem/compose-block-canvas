@@ -13,6 +13,7 @@ public final class com/yasincidem/blockcanvas/ui/state/BlockCanvasState {
 	public final fun getCanvasState ()Lcom/yasincidem/blockcanvas/core/state/CanvasState;
 	public final fun getSelectionState ()Lcom/yasincidem/blockcanvas/core/state/SelectionState;
 	public final fun getViewport ()Lcom/yasincidem/blockcanvas/core/geometry/Viewport;
+	public final fun moveNode-vHiRkdI (Ljava/lang/String;Lcom/yasincidem/blockcanvas/core/geometry/Offset;)V
 	public final fun removeEdge-lEqb4Is (Ljava/lang/String;)V
 	public final fun removeNode-UUhBwN4 (Ljava/lang/String;)V
 	public final fun selectOnly-UUhBwN4 (Ljava/lang/String;)V

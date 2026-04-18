@@ -1,5 +1,6 @@
 package com.yasincidem.blockcanvas.core.state
 
+import com.yasincidem.blockcanvas.core.geometry.Offset
 import com.yasincidem.blockcanvas.core.model.Edge
 import com.yasincidem.blockcanvas.core.model.EdgeId
 import com.yasincidem.blockcanvas.core.model.Node
@@ -20,6 +21,14 @@ public data class CanvasState(
      */
     public fun addNode(node: Node): CanvasState {
         return copy(nodes = nodes + (node.id to node))
+    }
+
+    /**
+     * Moves a node to [newPosition]. Returns this state unchanged if [id] is not found.
+     */
+    public fun moveNode(id: NodeId, newPosition: Offset): CanvasState {
+        val node = nodes[id] ?: return this
+        return copy(nodes = nodes + (id to node.copy(position = newPosition)))
     }
 
     /**

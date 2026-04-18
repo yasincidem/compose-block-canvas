@@ -6,6 +6,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.yasincidem.blockcanvas.core.geometry.Offset
 import com.yasincidem.blockcanvas.core.geometry.Viewport
 import com.yasincidem.blockcanvas.core.model.Edge
 import com.yasincidem.blockcanvas.core.model.EdgeId
@@ -38,6 +39,11 @@ public class BlockCanvasState(
     /** Replaces the current viewport (pan + zoom). */
     public fun updateViewport(new: Viewport) {
         viewport = new
+    }
+
+    /** Moves a node to [newPosition] in world space. No-op if [id] is not found. */
+    public fun moveNode(id: NodeId, newPosition: Offset) {
+        canvasState = canvasState.moveNode(id, newPosition)
     }
 
     /**
