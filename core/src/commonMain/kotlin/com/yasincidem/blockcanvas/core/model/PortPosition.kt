@@ -11,9 +11,17 @@ import com.yasincidem.blockcanvas.core.geometry.Offset
  * - [PortSide.Bottom] → bottom-center
  * - [PortSide.Left]   → left-center
  */
-public fun computePortPosition(node: Node, port: Port): Offset = when (port.side) {
-    PortSide.Top    -> Offset(node.position.x + node.width  / 2f, node.position.y)
-    PortSide.Right  -> Offset(node.position.x + node.width,       node.position.y + node.height / 2f)
-    PortSide.Bottom -> Offset(node.position.x + node.width  / 2f, node.position.y + node.height)
-    PortSide.Left   -> Offset(node.position.x,                    node.position.y + node.height / 2f)
+public fun computePortPosition(node: Node, port: Port): Offset =
+    computePortPosition(node.position, node.width, node.height, port.side)
+
+public fun computePortPosition(
+    position: Offset,
+    width: Float,
+    height: Float,
+    side: PortSide
+): Offset = when (side) {
+    PortSide.Top    -> Offset(position.x + width  / 2f, position.y)
+    PortSide.Right  -> Offset(position.x + width,       position.y + height / 2f)
+    PortSide.Bottom -> Offset(position.x + width  / 2f, position.y + height)
+    PortSide.Left   -> Offset(position.x,                position.y + height / 2f)
 }

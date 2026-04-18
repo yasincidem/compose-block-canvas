@@ -65,6 +65,8 @@ public fun BlockCanvas(
     val density = LocalDensity.current
     val hitTester = remember { DefaultHitTester() }
     val onConnectionRequestState by rememberUpdatedState(onConnectionRequest)
+    // Reuse Path to avoid allocations in draw loop
+    val sharedPath = remember { Path() }
 
     Box(
         modifier = modifier
@@ -207,6 +209,8 @@ public fun BlockCanvas(
         if (state.snapToGrid > 0f) {
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val scaledGrid = state.snapToGrid * state.viewport.zoom
+                if (scaledGrid < 10f) return@Canvas // Too small to see, and would kill performance
+                
                 // modulo to find the starting offset
                 val panX = state.viewport.pan.x % scaledGrid
                 val panY = state.viewport.pan.y % scaledGrid
@@ -239,14 +243,14 @@ public fun BlockCanvas(
                 val fromPos = state.nodePositions[fromNode.id] ?: fromNode.position
                 val toPos   = state.nodePositions[toNode.id]   ?: toNode.position
                 val fromScreen = state.viewport.worldToScreen(
-                    computePortPosition(fromNode.copy(position = fromPos), fromPort)
+                    computePortPosition(fromPos, fromNode.width, fromNode.height, fromPort.side)
                 ).toCompose()
                 val toScreen = state.viewport.worldToScreen(
-                    computePortPosition(toNode.copy(position = toPos), toPort)
+                    computePortPosition(toPos, toNode.width, toNode.height, toPort.side)
                 ).toCompose()
                 
                 val isSelected = state.selectionState.isSelected(edge.id)
-                drawEdgeBezier(fromScreen, toScreen, selected = isSelected)
+                drawEdgeBezier(sharedPath, fromScreen, toScreen, selected = isSelected)
             }
 
             // Live bezier while a connection is being drawn.
@@ -255,10 +259,10 @@ public fun BlockCanvas(
                 val fromPort = fromNode.ports.find { it.id == pending.from.port } ?: return@let
                 val fromPos  = state.nodePositions[fromNode.id] ?: fromNode.position
                 val fromScreen = state.viewport.worldToScreen(
-                    computePortPosition(fromNode.copy(position = fromPos), fromPort)
+                    computePortPosition(fromPos, fromNode.width, fromNode.height, fromPort.side)
                 ).toCompose()
                 val toScreen = state.viewport.worldToScreen(pending.currentPointerWorld).toCompose()
-                drawEdgeBezier(fromScreen, toScreen, pending = true)
+                drawEdgeBezier(sharedPath, fromScreen, toScreen, pending = true)
             }
         }
 
@@ -300,20 +304,20 @@ public fun BlockCanvas(
 }
 
 private fun DrawScope.drawEdgeBezier(
+    path: Path,
     from: androidx.compose.ui.geometry.Offset,
     to: androidx.compose.ui.geometry.Offset,
     pending: Boolean = false,
     selected: Boolean = false,
 ) {
     val handle = abs(to.x - from.x).coerceAtLeast(60f) * 0.5f
-    val path = Path().apply {
-        moveTo(from.x, from.y)
-        cubicTo(
-            x1 = from.x + handle, y1 = from.y,
-            x2 = to.x - handle,   y2 = to.y,
-            x3 = to.x,            y3 = to.y,
-        )
-    }
+    path.reset()
+    path.moveTo(from.x, from.y)
+    path.cubicTo(
+        x1 = from.x + handle, y1 = from.y,
+        x2 = to.x - handle,   y2 = to.y,
+        x3 = to.x,            y3 = to.y,
+    )
     
     if (selected) {
         val highlightColor = Color.White.copy(alpha = 0.5f)
@@ -345,8 +349,8 @@ private fun hitTestEdges(
 
         val fromPos = state.nodePositions[fromNode.id] ?: fromNode.position
         val toPos = state.nodePositions[toNode.id] ?: toNode.position
-        val p0 = computePortPosition(fromNode.copy(position = fromPos), fromPort)
-        val p3 = computePortPosition(toNode.copy(position = toPos), toPort)
+        val p0 = computePortPosition(fromPos, fromNode.width, fromNode.height, fromPort.side)
+        val p3 = computePortPosition(toPos, toNode.width, toNode.height, toPort.side)
 
         val handle = abs(p3.x - p0.x).coerceAtLeast(60f) * 0.5f
         val p1 = CoreOffset(p0.x + handle, p0.y)
