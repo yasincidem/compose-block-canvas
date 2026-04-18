@@ -28,7 +28,7 @@ public interface ConnectionValidator {
     public fun validate(
         from: EndPoint,
         to: EndPoint,
-        existingEdges: List<Edge>,
+        existingEdges: Collection<Edge>,
         portLookup: (EndPoint) -> Port?,
     ): ConnectionError?
 }

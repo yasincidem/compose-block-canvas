@@ -9,8 +9,9 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateMap
-import androidx.compose.runtime.mutableStateListOf
-import kotlin.math.round
+import kotlin.math.roundToInt
+import com.yasincidem.blockcanvas.core.alignment.AlignmentDetector
+import com.yasincidem.blockcanvas.core.alignment.AlignmentResult
 import com.yasincidem.blockcanvas.core.geometry.Offset
 import com.yasincidem.blockcanvas.core.geometry.Viewport
 import com.yasincidem.blockcanvas.core.model.Edge
@@ -18,21 +19,17 @@ import com.yasincidem.blockcanvas.core.model.EdgeId
 import com.yasincidem.blockcanvas.core.model.EndPoint
 import com.yasincidem.blockcanvas.core.model.Node
 import com.yasincidem.blockcanvas.core.model.NodeId
+import com.yasincidem.blockcanvas.core.model.EdgeAnimation
+import com.yasincidem.blockcanvas.core.model.EdgeEnd
+import com.yasincidem.blockcanvas.core.model.EdgeStroke
+import com.yasincidem.blockcanvas.core.routing.EdgeRouter
+import com.yasincidem.blockcanvas.core.rules.ConnectionValidator
+import com.yasincidem.blockcanvas.core.rules.DefaultConnectionValidator
 import com.yasincidem.blockcanvas.core.state.CanvasState
 import com.yasincidem.blockcanvas.core.state.SelectionState
 
 /**
  * Hoisted mutable state container for the BlockCanvas composable.
- *
- * This bridges the immutable data layers ([CanvasState], [SelectionState], [Viewport])
- * with Compose's reactivity system.
- *
- * Node positions are tracked in two places:
- *  - [nodePositions]: fine-grained [SnapshotStateMap] updated on every drag frame.
- *    Reads inside `offset {}` / Canvas `onDraw` lambdas re-layout or re-draw only the
- *    affected node — no recomposition.
- *  - [canvasState]: coarse-grained atom updated once at drag-end. Reads in the
- *    composition scope (e.g. the node `forEach`) only recompose on structural changes.
  */
 @Stable
 public class BlockCanvasState(
@@ -40,6 +37,12 @@ public class BlockCanvasState(
     initialSelectionState: SelectionState = SelectionState(),
     initialViewport: Viewport = Viewport.Default,
     initialGridConfig: GridConfig = GridConfig.Default,
+    public val connectionValidator: ConnectionValidator = DefaultConnectionValidator(),
+    public var defaultEdgeRouter: EdgeRouter = EdgeRouter.Bezier,
+    public var defaultSourceEnd: EdgeEnd = EdgeEnd.None,
+    public var defaultTargetEnd: EdgeEnd = EdgeEnd.Arrow(),
+    public var defaultEdgeStroke: EdgeStroke = EdgeStroke.Solid(),
+    public var defaultEdgeAnimation: EdgeAnimation = EdgeAnimation.None,
 ) {
     public var gridConfig: GridConfig by mutableStateOf(initialGridConfig)
 
@@ -52,33 +55,24 @@ public class BlockCanvasState(
     public var viewport: Viewport by mutableStateOf(initialViewport)
         private set
 
-    /**
-     * Per-node positions for layout/draw-phase reads.
-     * Updated every drag frame; does NOT replace [canvasState] until drag ends,
-     * so the composition scope never recomposes during a drag.
-     */
     public val nodePositions: SnapshotStateMap<NodeId, Offset> =
         mutableStateMapOf<NodeId, Offset>().also { map ->
             initialCanvasState.nodes.values.forEach { map[it.id] = it.position }
         }
 
-    /** Live connection being drawn from a port to the current pointer position. */
     public var pendingConnection: PendingConnection? by mutableStateOf(null)
         private set
 
-    /** Stack of past states for [undo]. */
+    public var alignmentResult: AlignmentResult? by mutableStateOf(null)
+        private set
+
     private val undoStack = mutableStateListOf<CanvasState>()
-
-    /** Stack of reverted states for [redo]. */
     private val redoStack = mutableStateListOf<CanvasState>()
+    private var edgeIdCounter = 0
 
-    /** Whether an [undo] operation can be performed. */
     public val canUndo: Boolean get() = undoStack.isNotEmpty()
-
-    /** Whether a [redo] operation can be performed. */
     public val canRedo: Boolean get() = redoStack.isNotEmpty()
 
-    /** Centralized state mutator that pushes to the history stack. */
     private fun mutateCanvas(mutation: (CanvasState) -> CanvasState) {
         val newState = mutation(canvasState)
         if (newState != canvasState) {
@@ -88,19 +82,16 @@ public class BlockCanvasState(
         }
     }
 
-    /** Reverts the last layout/structure modification. */
     public fun undo() {
         if (undoStack.isNotEmpty()) {
             redoStack.add(canvasState)
             val prevState = undoStack.removeAt(undoStack.lastIndex)
             canvasState = prevState
             prevState.nodes.values.forEach { nodePositions[it.id] = it.position }
-            // Remove lingering tracked positions for deleted nodes
             nodePositions.keys.retainAll(prevState.nodes.keys)
         }
     }
 
-    /** Re-applies the last reverted layout/structure modification. */
     public fun redo() {
         if (redoStack.isNotEmpty()) {
             undoStack.add(canvasState)
@@ -111,57 +102,118 @@ public class BlockCanvasState(
         }
     }
 
-    /** Starts a pending connection from [from] at the given world position. */
-    public fun startPendingConnection(from: EndPoint, worldPos: Offset) {
-        pendingConnection = PendingConnection(from, worldPos)
+    // ── Connection API ────────────────────────────────────────────────────────
+
+    /** Programmatically begin a connection from [source] in click-click mode. */
+    public fun startConnection(source: EndPoint, worldPos: Offset = Offset.Zero) {
+        pendingConnection = PendingConnection(source, worldPos, ConnectionMode.Click)
     }
 
-    /** Updates the tip of the pending connection to [worldPos]. */
-    public fun updatePendingConnection(worldPos: Offset) {
-        pendingConnection = pendingConnection?.copy(currentPointerWorld = worldPos)
-    }
-
-    /** Removes the pending connection (drag ended or was cancelled). */
-    public fun clearPendingConnection() {
+    /** Cancel any in-progress connection without creating an edge. */
+    public fun cancelConnection() {
         pendingConnection = null
     }
 
-    /** Replaces the current viewport (pan + zoom). */
+    /**
+     * Attempt to commit a connection from the current pending source to [to].
+     * Runs the [connectionValidator]; returns `true` if edge was created.
+     * [onAttempt] is called first and can veto by returning `false`.
+     */
+    internal fun tryCommitConnection(
+        to: EndPoint,
+        onAttempt: (from: EndPoint, to: EndPoint) -> Boolean = { _, _ -> true },
+    ): Boolean {
+        val pending = pendingConnection ?: return false
+        val from = pending.from
+        if (from == to) { cancelConnection(); return false }
+        if (!onAttempt(from, to)) { cancelConnection(); return false }
+
+        val portLookup: (EndPoint) -> com.yasincidem.blockcanvas.core.model.Port? = { ep ->
+            canvasState.nodes[ep.node]?.ports?.find { it.id == ep.port }
+        }
+        val error = connectionValidator.validate(from, to, canvasState.edges.values, portLookup)
+        if (error != null) { cancelConnection(); return false }
+
+        val edgeId = EdgeId("edge_${edgeIdCounter++}")
+        val edge = Edge(id = edgeId, from = from, to = to)
+        mutateCanvas { it.addEdge(edge) }
+        cancelConnection()
+        return true
+    }
+
+    internal fun startPendingConnection(from: EndPoint, worldPos: Offset, mode: ConnectionMode = ConnectionMode.Drag) {
+        pendingConnection = PendingConnection(from, worldPos, mode)
+    }
+
+    internal fun updatePendingConnection(worldPos: Offset) {
+        pendingConnection = pendingConnection?.copy(currentPointerWorld = worldPos)
+    }
+
+    internal fun clearPendingConnection() {
+        pendingConnection = null
+    }
+
+    // ── Viewport ──────────────────────────────────────────────────────────────
+
     public fun updateViewport(new: Viewport) {
         viewport = new
     }
 
+    // ── Snapping ──────────────────────────────────────────────────────────────
+
     /**
      * Snaps a world-space coordinate to the nearest visible grid point on the screen.
-     * accounts for current zoom and pan to achieve pixel-perfect alignment.
+     * Uses half-grid precision so nodes land on lines AND midpoints between them.
+     *
+     * Enabling snap only affects future drags. Call [snapAllToGrid] to immediately
+     * move all existing nodes to their nearest grid positions.
      */
     public fun snap(pos: Offset): Offset {
         if (!gridConfig.snapToGrid || gridConfig.type == GridType.None) return pos
-        
+
         val s = gridConfig.spacing
+        val step = s * 0.5f
         val z = viewport.zoom
         val px = viewport.pan.x
         val py = viewport.pan.y
-        
+
+        val offsetX = px % s
+        val offsetY = py % s
+
+        val screenX = pos.x * z + px
+        val screenY = pos.y * z + py
+
+        val snappedScreenX = ((screenX - offsetX) / step).roundToInt() * step + offsetX
+        val snappedScreenY = ((screenY - offsetY) / step).roundToInt() * step + offsetY
+
         return Offset(
-            x = (round((pos.x * z + px) / s) * s - px) / z,
-            y = (round((pos.y * z + py) / s) * s - py) / z
+            x = (snappedScreenX - px) / z,
+            y = (snappedScreenY - py) / z,
         )
     }
 
-    /**
-     * Moves a node to [newPosition] in world space, updating both [nodePositions] and
-     * [canvasState] atomically.
-     */
+    /** Immediately snaps every node to its nearest grid position. No-op if snap is disabled. */
+    public fun snapAllToGrid() {
+        if (!gridConfig.snapToGrid || gridConfig.type == GridType.None) return
+        mutateCanvas { state ->
+            var result = state
+            for (node in state.nodes.values) {
+                val snapped = snap(node.position)
+                nodePositions[node.id] = snapped
+                result = result.moveNode(node.id, snapped)
+            }
+            result
+        }
+    }
+
+    // ── Node / Edge mutations ─────────────────────────────────────────────────
+
     public fun moveNode(id: NodeId, newPosition: Offset) {
         val snappedPos = snap(newPosition)
         nodePositions[id] = snappedPos
         mutateCanvas { it.moveNode(id, snappedPos) }
     }
 
-    /**
-     * Moves multiple nodes atomically, producing exactly one frame in the undo history.
-     */
     public fun commitNodePositions(positions: Map<NodeId, Offset>) {
         mutateCanvas { state ->
             var finalState = state
@@ -173,76 +225,56 @@ public class BlockCanvasState(
         }
     }
 
-    /**
-     * Updates only [nodePositions] for [id] — skips the [canvasState] replacement so
-     * the composition scope never recomposes. Call [moveNode] once at drag-end to persist.
-     */
     internal fun moveNodeDuringDrag(id: NodeId, newPosition: Offset) {
         nodePositions[id] = newPosition
     }
 
-    /** Adds or updates a node in the canvas. */
+    internal fun updateAlignmentResult(dragged: Node, threshold: Float = 6f) {
+        alignmentResult = AlignmentDetector.detect(dragged, canvasState.nodes.values, threshold)
+    }
+
+    internal fun clearAlignmentResult() {
+        alignmentResult = null
+    }
+
     public fun addNode(node: Node) {
         nodePositions[node.id] = node.position
         mutateCanvas { it.addNode(node) }
     }
 
-    /**
-     * Removes a node and ensures it loses its selection status.
-     * Associated edges are removed automatically by [CanvasState].
-     */
     public fun removeNode(id: NodeId) {
         nodePositions.remove(id)
         mutateCanvas { it.removeNode(id) }
         selectionState = selectionState.remove(id)
     }
 
-    /** Adds an edge to the canvas. */
     public fun addEdge(edge: Edge) {
         mutateCanvas { it.addEdge(edge) }
     }
 
-    /** Removes an edge and clears its selection status. */
     public fun removeEdge(id: EdgeId) {
         mutateCanvas { it.removeEdge(id) }
         selectionState = selectionState.remove(id)
     }
 
-    /** Toggles selection for a node. */
-    public fun toggleSelection(id: NodeId) {
-        selectionState = selectionState.toggle(id)
-    }
+    // ── Selection ─────────────────────────────────────────────────────────────
 
-    /** Toggles selection for an edge. */
-    public fun toggleSelection(id: EdgeId) {
-        selectionState = selectionState.toggle(id)
-    }
-
-    /** Exclusively selects a single node, clearing other selections. */
-    public fun selectOnly(id: NodeId) {
-        selectionState = selectionState.selectOnly(id)
-    }
-
-    /** Exclusively selects a single edge, clearing other selections. */
-    public fun selectOnly(id: EdgeId) {
-        selectionState = selectionState.selectOnly(id)
-    }
-
-    /** Clears all active selections. */
-    public fun clearSelection() {
-        selectionState = selectionState.clear()
-    }
+    public fun toggleSelection(id: NodeId) { selectionState = selectionState.toggle(id) }
+    public fun toggleSelection(id: EdgeId) { selectionState = selectionState.toggle(id) }
+    public fun selectOnly(id: NodeId)      { selectionState = selectionState.selectOnly(id) }
+    public fun selectOnly(id: EdgeId)      { selectionState = selectionState.selectOnly(id) }
+    public fun clearSelection()            { selectionState = selectionState.clear() }
 }
 
-/** Creates and remembers a [BlockCanvasState]. */
 @Composable
 public fun rememberBlockCanvasState(
     initialCanvasState: CanvasState = CanvasState(),
     initialSelectionState: SelectionState = SelectionState(),
     initialViewport: Viewport = Viewport.Default,
     gridConfig: GridConfig = GridConfig.Default,
+    connectionValidator: ConnectionValidator = DefaultConnectionValidator(),
 ): BlockCanvasState {
     return remember {
-        BlockCanvasState(initialCanvasState, initialSelectionState, initialViewport, gridConfig)
+        BlockCanvasState(initialCanvasState, initialSelectionState, initialViewport, gridConfig, connectionValidator)
     }
 }

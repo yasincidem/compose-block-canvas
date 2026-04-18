@@ -22,7 +22,7 @@ public class DefaultConnectionValidator : ConnectionValidator {
     override fun validate(
         from: EndPoint,
         to: EndPoint,
-        existingEdges: List<Edge>,
+        existingEdges: Collection<Edge>,
         portLookup: (EndPoint) -> Port?,
     ): ConnectionError? {
         if (from == to) return ConnectionError.SelfLoop(from)

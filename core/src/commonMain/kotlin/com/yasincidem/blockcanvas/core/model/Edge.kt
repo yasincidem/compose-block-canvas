@@ -1,6 +1,8 @@
 package com.yasincidem.blockcanvas.core.model
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
+import com.yasincidem.blockcanvas.core.routing.EdgeRouter
 
 /**
  * A directed connection between two ports in the canvas.
@@ -25,4 +27,14 @@ public data class Edge(
     public val id: EdgeId,
     public val from: EndPoint,
     public val to: EndPoint,
+    /** Per-edge router override. `null` = canvas-wide default. Not serialized. */
+    @Transient public val router: EdgeRouter? = null,
+    /** Decoration at the source end. `null` = canvas-wide default. Not serialized. */
+    @Transient public val sourceEnd: EdgeEnd? = null,
+    /** Decoration at the target end. `null` = canvas-wide default. Not serialized. */
+    @Transient public val targetEnd: EdgeEnd? = null,
+    /** Stroke style. `null` = canvas-wide default. Not serialized. */
+    @Transient public val stroke: EdgeStroke? = null,
+    /** Animation. `null` = canvas-wide default. Not serialized. */
+    @Transient public val animation: EdgeAnimation? = null,
 )

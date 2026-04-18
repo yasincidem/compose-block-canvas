@@ -25,6 +25,9 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.yasincidem.blockcanvas.core.geometry.Offset
 import com.yasincidem.blockcanvas.core.model.Edge
+import com.yasincidem.blockcanvas.core.model.EdgeAnimation
+import com.yasincidem.blockcanvas.core.model.EdgeEnd
+import com.yasincidem.blockcanvas.core.model.EdgeStroke
 import com.yasincidem.blockcanvas.core.model.EdgeId
 import com.yasincidem.blockcanvas.core.model.EndPoint
 import com.yasincidem.blockcanvas.core.model.Node
@@ -70,8 +73,9 @@ fun App() {
 
             val initialCanvas = remember(density) {
                 buildCanvasState {
+                    // Row 1 — decoration showcase
                     node("node_1") {
-                        at(x = gap, y = 200f * density)
+                        at(x = gap, y = 160f * density)
                         size(nodeW, nodeH)
                         port("right", PortSide.Right)
                     }
@@ -85,21 +89,62 @@ fun App() {
                         rightOf("node_2", gap = gap)
                         size(nodeW, nodeH)
                         port("left", PortSide.Left)
+                        port("right", PortSide.Right)
+                    }
+                    node("node_4") {
+                        rightOf("node_3", gap = gap)
+                        size(nodeW, nodeH)
+                        port("left", PortSide.Left)
                     }
 
+                    // arrow (default)
                     connect("node_1", "right") linksTo connect("node_2", "left")
+                    // circle target
                     connect("node_2", "right") linksTo connect("node_3", "left")
+                    // diamond target
+                    connect("node_3", "right") linksTo connect("node_4", "left")
                 }
             }
 
+            // Override edge decorations after build to showcase all types
+            val canvasWithDecorations = remember(initialCanvas) {
+                val edges = initialCanvas.edges.values.toList()
+                var result = initialCanvas
+                // edge 0: solid + arrow, no animation
+                edges.getOrNull(0)?.let { e ->
+                    result = result.copy(edges = result.edges + (e.id to e.copy(
+                        sourceEnd = EdgeEnd.None, targetEnd = EdgeEnd.Arrow(size = 10f),
+                        stroke = EdgeStroke.Solid(width = 2.5f),
+                        animation = EdgeAnimation.None,
+                    )))
+                }
+                // edge 1: dashed + circle + marching ants
+                edges.getOrNull(1)?.let { e ->
+                    result = result.copy(edges = result.edges + (e.id to e.copy(
+                        sourceEnd = EdgeEnd.None, targetEnd = EdgeEnd.Circle(radius = 6f),
+                        stroke = EdgeStroke.Dashed(width = 2f, dashLength = 10f, gapLength = 5f),
+                        animation = EdgeAnimation.MarchingAnts(speedDpPerSecond = 60f),
+                    )))
+                }
+                // edge 2: dotted + diamond + pulse (2 dots)
+                edges.getOrNull(2)?.let { e ->
+                    result = result.copy(edges = result.edges + (e.id to e.copy(
+                        sourceEnd = EdgeEnd.None, targetEnd = EdgeEnd.Diamond(size = 7f),
+                        stroke = EdgeStroke.Dotted(width = 3f, gapLength = 5f),
+                        animation = EdgeAnimation.Pulse(dotRadius = 4f, durationMs = 1200, count = 2),
+                    )))
+                }
+                result
+            }
+
             val canvasState = rememberBlockCanvasState(
-                initialCanvasState = initialCanvas,
+                initialCanvasState = canvasWithDecorations,
                 gridConfig = GridConfig(
                     type = GridType.Dots,
                     spacing = 20f,
                     snapToGrid = true,
                     backgroundColor = Color.Unspecified,
-                    gridColor = Color.White.copy(alpha = 0.1f)
+                    gridColor = Color.LightGray
                 )
             )
 
@@ -160,7 +205,7 @@ fun App() {
                 }
 
                 Row(modifier = Modifier.align(Alignment.TopCenter).padding(top = 16.dp)) {
-                    Button(onClick = { 
+                    Button(onClick = {
                         canvasState.gridConfig = canvasState.gridConfig.copy(
                             type = if (canvasState.gridConfig.type == GridType.Dots) GridType.Lines else GridType.Dots
                         )
@@ -174,6 +219,13 @@ fun App() {
                         )
                     }) {
                         Text(if (canvasState.gridConfig.snapToGrid) "Disable Snap" else "Enable Snap")
+                    }
+                    Spacer(Modifier.width(16.dp))
+                    Button(
+                        onClick = { canvasState.snapAllToGrid() },
+                        enabled = canvasState.gridConfig.snapToGrid,
+                    ) {
+                        Text("Snap All to Grid")
                     }
                 }
             }
