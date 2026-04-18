@@ -8,6 +8,11 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -122,6 +127,25 @@ fun App() {
                     }
                 }
             )
+
+            // Undo / Redo Overlay Controls
+            Box(modifier = Modifier.fillMaxSize()) {
+                Row(modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp)) {
+                    Button(
+                        onClick = { canvasState.undo() },
+                        enabled = canvasState.canUndo
+                    ) {
+                        Text("Undo")
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Button(
+                        onClick = { canvasState.redo() },
+                        enabled = canvasState.canRedo
+                    ) {
+                        Text("Redo")
+                    }
+                }
+            }
         }
     }
 }

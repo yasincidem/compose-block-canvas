@@ -87,7 +87,7 @@ public class BlockCanvasState(
     public fun undo() {
         if (undoStack.isNotEmpty()) {
             redoStack.add(canvasState)
-            val prevState = undoStack.removeLast()
+            val prevState = undoStack.removeAt(undoStack.lastIndex)
             canvasState = prevState
             prevState.nodes.values.forEach { nodePositions[it.id] = it.position }
             // Remove lingering tracked positions for deleted nodes
@@ -99,7 +99,7 @@ public class BlockCanvasState(
     public fun redo() {
         if (redoStack.isNotEmpty()) {
             undoStack.add(canvasState)
-            val nextState = redoStack.removeLast()
+            val nextState = redoStack.removeAt(redoStack.lastIndex)
             canvasState = nextState
             nextState.nodes.values.forEach { nodePositions[it.id] = it.position }
             nodePositions.keys.retainAll(nextState.nodes.keys)
