@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -58,15 +59,24 @@ fun App() {
                 )
             )
 
-            BlockCanvas(
-                state = canvasState,
-                modifier = Modifier.fillMaxSize(),
-                nodeContent = { node, isSelected, scale ->
-                    DemoNode(node = node, isSelected = isSelected, scale = scale)
-                }
-            )
+            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                val canvasWidthPx = with(LocalDensity.current) { maxWidth.toPx() }
+                val canvasHeightPx = with(LocalDensity.current) { maxHeight.toPx() }
 
-            DemoOverlay(canvasState = canvasState)
+                BlockCanvas(
+                    state = canvasState,
+                    modifier = Modifier.fillMaxSize(),
+                    nodeContent = { node, isSelected, scale ->
+                        DemoNode(node = node, isSelected = isSelected, scale = scale)
+                    }
+                )
+
+                DemoOverlay(
+                    canvasState = canvasState,
+                    canvasWidthPx = canvasWidthPx,
+                    canvasHeightPx = canvasHeightPx,
+                )
+            }
         }
     }
 }
@@ -129,7 +139,11 @@ private fun BoxScope.PortDots() {
 }
 
 @Composable
-private fun DemoOverlay(canvasState: BlockCanvasState) {
+private fun DemoOverlay(
+    canvasState: BlockCanvasState,
+    canvasWidthPx: Float,
+    canvasHeightPx: Float,
+) {
     Box(modifier = Modifier.fillMaxSize()) {
         UndoRedoBar(
             canvasState = canvasState,
@@ -145,6 +159,27 @@ private fun DemoOverlay(canvasState: BlockCanvasState) {
             state = canvasState,
             modifier = Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 16.dp),
         )
+
+        FitButton(
+            onClick = { canvasState.fitToNodes(canvasWidthPx, canvasHeightPx) },
+            modifier = Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 72.dp),
+        )
+    }
+}
+
+@Composable
+private fun FitButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Button(
+        onClick = onClick,
+        modifier = modifier.size(40.dp),
+        shape = androidx.compose.foundation.shape.CircleShape,
+        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+            containerColor = Color(0xFF_2A2A3E),
+            contentColor = Color.White,
+        ),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp),
+    ) {
+        Text("⊡", fontSize = androidx.compose.ui.unit.TextUnit(18f, androidx.compose.ui.unit.TextUnitType.Sp))
     }
 }
 

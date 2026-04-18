@@ -16,8 +16,12 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
@@ -116,6 +120,7 @@ public fun BlockCanvas(
     val decorationPath = remember { Path() }
     // Tap threshold: pointer moved less than this → treat as click, not drag
     val tapThresholdPx = 8f
+    var canvasSize by remember { mutableStateOf(IntSize.Zero) }
 
     // Single shared time source for all edge animations — 0..1 cycling every second.
     // Captured as State<Float> (not `by` delegation) so .value is read inside draw
@@ -130,6 +135,7 @@ public fun BlockCanvas(
 
     Box(
         modifier = modifier
+            .onSizeChanged { canvasSize = it }
             .onKeyEvent { event ->
                 // Keep modifiers for desktop users
                 when {
@@ -154,7 +160,11 @@ public fun BlockCanvas(
                         newZoom = state.viewport.zoom * zoomFactor,
                         anchor = centroid.toCore(),
                     )
-                    state.updateViewport(afterZoom.withPan(afterZoom.pan + pan.toCore()))
+                    state.updateViewport(
+                        afterZoom.withPan(afterZoom.pan + pan.toCore()),
+                        canvasWidth = canvasSize.width.toFloat(),
+                        canvasHeight = canvasSize.height.toFloat(),
+                    )
                 }
             }
             // Connection drag + node drag — inner modifier, processed FIRST in Main pass.
@@ -398,7 +408,11 @@ public fun BlockCanvas(
                                     is CanvasInteraction.Panning -> {
                                         change.consume()
                                         val panDelta = (change.position - change.previousPosition).toCore()
-                                        state.updateViewport(state.viewport.withPan(state.viewport.pan + panDelta))
+                                        state.updateViewport(
+                                            state.viewport.withPan(state.viewport.pan + panDelta),
+                                            canvasWidth = canvasSize.width.toFloat(),
+                                            canvasHeight = canvasSize.height.toFloat(),
+                                        )
                                     }
                                     else -> {
                                         // Mode not decided yet. 

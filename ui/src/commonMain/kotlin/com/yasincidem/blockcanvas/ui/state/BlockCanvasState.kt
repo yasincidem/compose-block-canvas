@@ -13,6 +13,7 @@ import kotlin.math.roundToInt
 import com.yasincidem.blockcanvas.core.alignment.AlignmentDetector
 import com.yasincidem.blockcanvas.core.alignment.AlignmentResult
 import com.yasincidem.blockcanvas.core.geometry.Offset
+import com.yasincidem.blockcanvas.core.geometry.Rect
 import com.yasincidem.blockcanvas.core.geometry.Viewport
 import com.yasincidem.blockcanvas.core.model.Edge
 import com.yasincidem.blockcanvas.core.model.EdgeId
@@ -44,6 +45,12 @@ public class BlockCanvasState(
     public var defaultEdgeStroke: EdgeStroke = EdgeStroke.Solid(),
     public var defaultEdgeAnimation: EdgeAnimation = EdgeAnimation.None,
     public var marqueeStyle: MarqueeStyle = MarqueeStyle(),
+    /**
+     * Optional hard boundary in world space. When set, [updateViewport] clamps
+     * the pan so at least one edge of the world bounds remains visible on screen.
+     * Pass `null` (the default) for a truly infinite canvas.
+     */
+    public var worldBounds: Rect? = null,
 ) {
     public var gridConfig: GridConfig by mutableStateOf(initialGridConfig)
 
@@ -162,8 +169,87 @@ public class BlockCanvasState(
 
     // ── Viewport ──────────────────────────────────────────────────────────────
 
-    public fun updateViewport(new: Viewport) {
-        viewport = new
+    /**
+     * Updates the viewport, optionally clamping pan against [worldBounds].
+     *
+     * When [canvasWidth]/[canvasHeight] are provided and [worldBounds] is set,
+     * the pan is constrained so that the world boundary never moves entirely
+     * off-screen — at least one edge of the world rectangle remains visible.
+     */
+    public fun updateViewport(
+        new: Viewport,
+        canvasWidth: Float = 0f,
+        canvasHeight: Float = 0f,
+    ) {
+        val bounds = worldBounds
+        viewport = if (bounds == null || canvasWidth <= 0f || canvasHeight <= 0f) {
+            new
+        } else {
+            new.copy(pan = clampPan(new.pan, new.zoom, bounds, canvasWidth, canvasHeight))
+        }
+    }
+
+    private fun clampPan(
+        pan: Offset,
+        zoom: Float,
+        bounds: Rect,
+        canvasWidth: Float,
+        canvasHeight: Float,
+    ): Offset {
+        // Screen position of each world edge at the proposed pan
+        val leftScreen   = bounds.left   * zoom + pan.x
+        val rightScreen  = bounds.right  * zoom + pan.x
+        val topScreen    = bounds.top    * zoom + pan.y
+        val bottomScreen = bounds.bottom * zoom + pan.y
+
+        var px = pan.x
+        var py = pan.y
+
+        // Horizontal: keep at least one vertical edge on screen
+        if (leftScreen > canvasWidth)  px -= (leftScreen  - canvasWidth)
+        if (rightScreen < 0f)          px -= (rightScreen)
+
+        // Vertical: keep at least one horizontal edge on screen
+        if (topScreen > canvasHeight)  py -= (topScreen   - canvasHeight)
+        if (bottomScreen < 0f)         py -= (bottomScreen)
+
+        return Offset(px, py)
+    }
+
+    /**
+     * Adjusts pan and zoom so that all nodes fit inside the visible canvas area.
+     *
+     * @param canvasWidth  Visible canvas width in screen pixels.
+     * @param canvasHeight Visible canvas height in screen pixels.
+     * @param padding      Inset (screen pixels) to leave around the bounding box on each side.
+     */
+    public fun fitToNodes(canvasWidth: Float, canvasHeight: Float, padding: Float = 40f) {
+        val nodes = canvasState.nodes.values
+        if (nodes.isEmpty()) return
+
+        val left   = nodes.minOf { it.position.x }
+        val top    = nodes.minOf { it.position.y }
+        val right  = nodes.maxOf { it.position.x + it.width }
+        val bottom = nodes.maxOf { it.position.y + it.height }
+
+        val boundsW = right - left
+        val boundsH = bottom - top
+
+        val availW = canvasWidth  - padding * 2f
+        val availH = canvasHeight - padding * 2f
+
+        val rawZoom = if (boundsW > 0f && boundsH > 0f) {
+            minOf(availW / boundsW, availH / boundsH)
+        } else 1f
+
+        val zoom = rawZoom.coerceIn(viewport.minZoom, viewport.maxZoom)
+
+        val worldCenterX = left + boundsW / 2f
+        val worldCenterY = top  + boundsH / 2f
+        val panX = canvasWidth  / 2f - worldCenterX * zoom
+        val panY = canvasHeight / 2f - worldCenterY * zoom
+
+        viewport = viewport.copy(pan = Offset(panX, panY), zoom = zoom)
     }
 
     /** Zooms in by [step] factor, anchored to [anchor] in screen space. */
