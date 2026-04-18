@@ -82,6 +82,59 @@ public final class com/yasincidem/blockcanvas/core/geometry/Viewport$Companion {
 	public final fun getDefault ()Lcom/yasincidem/blockcanvas/core/geometry/Viewport;
 }
 
+public final class com/yasincidem/blockcanvas/core/hittest/DefaultHitTester : com/yasincidem/blockcanvas/core/hittest/HitTester {
+	public static final field Companion Lcom/yasincidem/blockcanvas/core/hittest/DefaultHitTester$Companion;
+	public static final field DEFAULT_PORT_TOLERANCE F
+	public fun <init> ()V
+	public fun hitTest (Lcom/yasincidem/blockcanvas/core/geometry/Offset;Ljava/util/Collection;Lkotlin/jvm/functions/Function2;F)Lcom/yasincidem/blockcanvas/core/hittest/HitResult;
+}
+
+public final class com/yasincidem/blockcanvas/core/hittest/DefaultHitTester$Companion {
+}
+
+public abstract class com/yasincidem/blockcanvas/core/hittest/HitResult {
+}
+
+public final class com/yasincidem/blockcanvas/core/hittest/HitResult$Empty : com/yasincidem/blockcanvas/core/hittest/HitResult {
+	public static final field INSTANCE Lcom/yasincidem/blockcanvas/core/hittest/HitResult$Empty;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/yasincidem/blockcanvas/core/hittest/HitResult$Node : com/yasincidem/blockcanvas/core/hittest/HitResult {
+	public synthetic fun <init> (Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-w13loqg ()Ljava/lang/String;
+	public final fun copy-UUhBwN4 (Ljava/lang/String;)Lcom/yasincidem/blockcanvas/core/hittest/HitResult$Node;
+	public static synthetic fun copy-UUhBwN4$default (Lcom/yasincidem/blockcanvas/core/hittest/HitResult$Node;Ljava/lang/String;ILjava/lang/Object;)Lcom/yasincidem/blockcanvas/core/hittest/HitResult$Node;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getNodeId-w13loqg ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/yasincidem/blockcanvas/core/hittest/HitResult$Port : com/yasincidem/blockcanvas/core/hittest/HitResult {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-w13loqg ()Ljava/lang/String;
+	public final fun component2--DG2Rr0 ()Ljava/lang/String;
+	public final fun copy-L39cwSI (Ljava/lang/String;Ljava/lang/String;)Lcom/yasincidem/blockcanvas/core/hittest/HitResult$Port;
+	public static synthetic fun copy-L39cwSI$default (Lcom/yasincidem/blockcanvas/core/hittest/HitResult$Port;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcom/yasincidem/blockcanvas/core/hittest/HitResult$Port;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getNodeId-w13loqg ()Ljava/lang/String;
+	public final fun getPortId--DG2Rr0 ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class com/yasincidem/blockcanvas/core/hittest/HitTester {
+	public abstract fun hitTest (Lcom/yasincidem/blockcanvas/core/geometry/Offset;Ljava/util/Collection;Lkotlin/jvm/functions/Function2;F)Lcom/yasincidem/blockcanvas/core/hittest/HitResult;
+	public static synthetic fun hitTest$default (Lcom/yasincidem/blockcanvas/core/hittest/HitTester;Lcom/yasincidem/blockcanvas/core/geometry/Offset;Ljava/util/Collection;Lkotlin/jvm/functions/Function2;FILjava/lang/Object;)Lcom/yasincidem/blockcanvas/core/hittest/HitResult;
+}
+
+public final class com/yasincidem/blockcanvas/core/hittest/HitTester$DefaultImpls {
+	public static synthetic fun hitTest$default (Lcom/yasincidem/blockcanvas/core/hittest/HitTester;Lcom/yasincidem/blockcanvas/core/geometry/Offset;Ljava/util/Collection;Lkotlin/jvm/functions/Function2;FILjava/lang/Object;)Lcom/yasincidem/blockcanvas/core/hittest/HitResult;
+}
+
 public final class com/yasincidem/blockcanvas/core/model/Edge {
 	public synthetic fun <init> (Ljava/lang/String;Lcom/yasincidem/blockcanvas/core/model/EndPoint;Lcom/yasincidem/blockcanvas/core/model/EndPoint;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1-8uptvyY ()Ljava/lang/String;
