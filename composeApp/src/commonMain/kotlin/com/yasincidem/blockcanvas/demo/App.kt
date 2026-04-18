@@ -78,12 +78,12 @@ fun App() {
             BlockCanvas(
                 state = canvasState,
                 modifier = Modifier.fillMaxSize(),
-                nodeContent = { node ->
+                nodeContent = { node, isSelected ->
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .background(Color(0xFF_1E1E2E), RoundedCornerShape(8.dp))
-                            .border(1.dp, Color(0xFF_5B8DEF), RoundedCornerShape(8.dp)),
+                            .border(if (isSelected) 2.dp else 1.dp, if (isSelected) Color.White else Color(0xFF_5B8DEF), RoundedCornerShape(8.dp)),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(text = node.id.value, color = Color.White)

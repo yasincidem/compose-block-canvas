@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.isShiftPressed
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
@@ -57,7 +58,7 @@ public fun BlockCanvas(
     state: BlockCanvasState,
     modifier: Modifier = Modifier,
     onConnectionRequest: (from: EndPoint, to: EndPoint) -> Unit = { _, _ -> },
-    nodeContent: @Composable (Node) -> Unit,
+    nodeContent: @Composable (node: Node, isSelected: Boolean) -> Unit,
 ) {
     val density = LocalDensity.current
     val hitTester = remember { DefaultHitTester() }
@@ -81,7 +82,9 @@ public fun BlockCanvas(
             // Consumes events for Port/Node hits so the outer pan/zoom handler is suppressed.
             .pointerInput(state) {
                 awaitEachGesture {
-                    val down = awaitFirstDown()
+                    val event = awaitPointerEvent()
+                    val down = event.changes.first()
+                    val isShiftPressed = event.keyboardModifiers.isShiftPressed
                     val worldPos = state.viewport.screenToWorld(down.position.toCore())
 
                     when (val hit = hitTester.hitTest(worldPos, state.canvasState.nodes.values)) {
@@ -112,24 +115,41 @@ public fun BlockCanvas(
 
                         is HitResult.Node -> {
                             down.consume()
+                            
+                            // Multi-selection handling
+                            if (isShiftPressed) {
+                                state.toggleSelection(hit.nodeId)
+                            } else if (!state.selectionState.isSelected(hit.nodeId)) {
+                                state.selectOnly(hit.nodeId)
+                            }
+
                             while (true) {
-                                val event = awaitPointerEvent()
-                                val change = event.changes.find { it.id == down.id } ?: break
+                                val dragEvent = awaitPointerEvent()
+                                val change = dragEvent.changes.find { it.id == down.id } ?: break
                                 if (!change.pressed) {
-                                    // Persist final position to canvasState (one recomposition at drag-end).
-                                    val finalPos = state.nodePositions[hit.nodeId]
-                                    if (finalPos != null) state.moveNode(hit.nodeId, finalPos)
+                                    // Persist final position to canvasState (one recomposition at drag-end) for all selected
+                                    state.selectionState.selectedNodes.forEach { selectedId ->
+                                        val finalPos = state.nodePositions[selectedId]
+                                        if (finalPos != null) state.moveNode(selectedId, finalPos)
+                                    }
                                     break
                                 }
                                 change.consume()
                                 val delta = (change.position - change.previousPosition).toCore() / state.viewport.zoom
-                                val current = state.nodePositions[hit.nodeId] ?: break
-                                // Fine-grained update: only nodePositions changes, no recomposition.
-                                state.moveNodeDuringDrag(hit.nodeId, current + delta)
+                                
+                                state.selectionState.selectedNodes.forEach { selectedId ->
+                                    val current = state.nodePositions[selectedId] ?: return@forEach
+                                    state.moveNodeDuringDrag(selectedId, current + delta)
+                                }
                             }
                         }
 
-                        HitResult.Empty -> { /* fall through to pan/zoom */ }
+                        HitResult.Empty -> {
+                            if (!isShiftPressed) {
+                                state.clearSelection()
+                            }
+                            /* fall through to pan/zoom */ 
+                        }
                     }
                 }
             }
@@ -200,7 +220,8 @@ public fun BlockCanvas(
                             height = with(density) { node.height.toDp() },
                         )
                 ) {
-                    nodeContent(node)
+                    val isSelected = state.selectionState.isSelected(node.id)
+                    nodeContent(node, isSelected)
                 }
             }
         }
