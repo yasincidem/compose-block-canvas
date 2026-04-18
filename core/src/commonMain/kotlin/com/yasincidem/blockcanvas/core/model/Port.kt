@@ -1,5 +1,7 @@
 package com.yasincidem.blockcanvas.core.model
 
+import kotlinx.serialization.Serializable
+
 /**
  * A connection point attached to a [Node].
  *
@@ -11,6 +13,7 @@ package com.yasincidem.blockcanvas.core.model
  * @property side Which edge of the node's bounding box this port sits on.
  * @since 0.1.0
  */
+@Serializable
 public data class Port(
     public val id: PortId,
     public val side: PortSide,

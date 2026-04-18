@@ -1,5 +1,7 @@
 package com.yasincidem.blockcanvas.core.geometry
 
+import kotlinx.serialization.Serializable
+
 /**
  * Immutable viewport for the block canvas, encoding pan and zoom.
  *
@@ -10,6 +12,7 @@ package com.yasincidem.blockcanvas.core.geometry
  * @property pan   Translation applied after scaling — the screen-space origin of the world origin.
  * @property zoom  Uniform scale factor, clamped to [[MIN_ZOOM], [MAX_ZOOM]].
  */
+@Serializable
 public data class Viewport(
     val pan: Offset = Offset.Zero,
     val zoom: Float = 1f,

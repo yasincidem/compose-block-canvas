@@ -159,11 +159,15 @@ public fun BlockCanvas(
                                 val dragEvent = awaitPointerEvent()
                                 val change = dragEvent.changes.find { it.id == down.id } ?: break
                                 if (!change.pressed) {
-                                    // Persist final position to canvasState (one recomposition at drag-end) for all selected
-                                    state.selectionState.selectedNodes.forEach { selectedId ->
-                                        val finalPos = state.nodePositions[selectedId]
-                                        if (finalPos != null) state.moveNode(selectedId, finalPos)
+                                    // Persist final position to canvasState atomically for all selected
+                                    val finalPlacements = buildMap {
+                                        state.selectionState.selectedNodes.forEach { id ->
+                                            val pos = state.nodePositions[id]
+                                            if (pos != null) put(id, pos)
+                                        }
                                     }
+                                    
+                                    state.commitNodePositions(finalPlacements)
                                     break
                                 }
                                 change.consume()

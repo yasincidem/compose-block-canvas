@@ -26,8 +26,20 @@ public final class com/yasincidem/blockcanvas/core/geometry/Offset {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final synthetic class com/yasincidem/blockcanvas/core/geometry/Offset$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/yasincidem/blockcanvas/core/geometry/Offset$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/yasincidem/blockcanvas/core/geometry/Offset;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/yasincidem/blockcanvas/core/geometry/Offset;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
 public final class com/yasincidem/blockcanvas/core/geometry/Offset$Companion {
 	public final fun getZero ()Lcom/yasincidem/blockcanvas/core/geometry/Offset;
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
 public final class com/yasincidem/blockcanvas/core/geometry/Rect {
@@ -78,8 +90,20 @@ public final class com/yasincidem/blockcanvas/core/geometry/Viewport {
 	public final fun worldToScreen (Lcom/yasincidem/blockcanvas/core/geometry/Offset;)Lcom/yasincidem/blockcanvas/core/geometry/Offset;
 }
 
+public final synthetic class com/yasincidem/blockcanvas/core/geometry/Viewport$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/yasincidem/blockcanvas/core/geometry/Viewport$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/yasincidem/blockcanvas/core/geometry/Viewport;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/yasincidem/blockcanvas/core/geometry/Viewport;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
 public final class com/yasincidem/blockcanvas/core/geometry/Viewport$Companion {
 	public final fun getDefault ()Lcom/yasincidem/blockcanvas/core/geometry/Viewport;
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
 public final class com/yasincidem/blockcanvas/core/hittest/DefaultHitTester : com/yasincidem/blockcanvas/core/hittest/HitTester {
@@ -136,6 +160,7 @@ public final class com/yasincidem/blockcanvas/core/hittest/HitTester$DefaultImpl
 }
 
 public final class com/yasincidem/blockcanvas/core/model/Edge {
+	public static final field Companion Lcom/yasincidem/blockcanvas/core/model/Edge$Companion;
 	public synthetic fun <init> (Ljava/lang/String;Lcom/yasincidem/blockcanvas/core/model/EndPoint;Lcom/yasincidem/blockcanvas/core/model/EndPoint;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1-8uptvyY ()Ljava/lang/String;
 	public final fun component2 ()Lcom/yasincidem/blockcanvas/core/model/EndPoint;
@@ -150,7 +175,23 @@ public final class com/yasincidem/blockcanvas/core/model/Edge {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final synthetic class com/yasincidem/blockcanvas/core/model/Edge$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/yasincidem/blockcanvas/core/model/Edge$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/yasincidem/blockcanvas/core/model/Edge;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/yasincidem/blockcanvas/core/model/Edge;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/yasincidem/blockcanvas/core/model/Edge$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
 public final class com/yasincidem/blockcanvas/core/model/EdgeId {
+	public static final field Companion Lcom/yasincidem/blockcanvas/core/model/EdgeId$Companion;
 	public static final synthetic fun box-impl (Ljava/lang/String;)Lcom/yasincidem/blockcanvas/core/model/EdgeId;
 	public static fun constructor-impl (Ljava/lang/String;)Ljava/lang/String;
 	public fun equals (Ljava/lang/Object;)Z
@@ -164,7 +205,23 @@ public final class com/yasincidem/blockcanvas/core/model/EdgeId {
 	public final synthetic fun unbox-impl ()Ljava/lang/String;
 }
 
+public final synthetic class com/yasincidem/blockcanvas/core/model/EdgeId$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/yasincidem/blockcanvas/core/model/EdgeId$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun deserialize-Rh9GJJ4 (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/String;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public final fun serialize-2ooUCwA (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/String;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/yasincidem/blockcanvas/core/model/EdgeId$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
 public final class com/yasincidem/blockcanvas/core/model/EndPoint {
+	public static final field Companion Lcom/yasincidem/blockcanvas/core/model/EndPoint$Companion;
 	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1-w13loqg ()Ljava/lang/String;
 	public final fun component2--DG2Rr0 ()Ljava/lang/String;
@@ -177,7 +234,23 @@ public final class com/yasincidem/blockcanvas/core/model/EndPoint {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final synthetic class com/yasincidem/blockcanvas/core/model/EndPoint$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/yasincidem/blockcanvas/core/model/EndPoint$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/yasincidem/blockcanvas/core/model/EndPoint;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/yasincidem/blockcanvas/core/model/EndPoint;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/yasincidem/blockcanvas/core/model/EndPoint$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
 public final class com/yasincidem/blockcanvas/core/model/Node {
+	public static final field Companion Lcom/yasincidem/blockcanvas/core/model/Node$Companion;
 	public synthetic fun <init> (Ljava/lang/String;Lcom/yasincidem/blockcanvas/core/geometry/Offset;FFLjava/util/List;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1-w13loqg ()Ljava/lang/String;
 	public final fun component2 ()Lcom/yasincidem/blockcanvas/core/geometry/Offset;
@@ -196,7 +269,23 @@ public final class com/yasincidem/blockcanvas/core/model/Node {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final synthetic class com/yasincidem/blockcanvas/core/model/Node$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/yasincidem/blockcanvas/core/model/Node$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/yasincidem/blockcanvas/core/model/Node;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/yasincidem/blockcanvas/core/model/Node;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/yasincidem/blockcanvas/core/model/Node$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
 public final class com/yasincidem/blockcanvas/core/model/NodeId {
+	public static final field Companion Lcom/yasincidem/blockcanvas/core/model/NodeId$Companion;
 	public static final synthetic fun box-impl (Ljava/lang/String;)Lcom/yasincidem/blockcanvas/core/model/NodeId;
 	public static fun constructor-impl (Ljava/lang/String;)Ljava/lang/String;
 	public fun equals (Ljava/lang/Object;)Z
@@ -210,7 +299,23 @@ public final class com/yasincidem/blockcanvas/core/model/NodeId {
 	public final synthetic fun unbox-impl ()Ljava/lang/String;
 }
 
+public final synthetic class com/yasincidem/blockcanvas/core/model/NodeId$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/yasincidem/blockcanvas/core/model/NodeId$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun deserialize-gVJSvtI (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/String;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public final fun serialize-O3zirMQ (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/String;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/yasincidem/blockcanvas/core/model/NodeId$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
 public final class com/yasincidem/blockcanvas/core/model/Port {
+	public static final field Companion Lcom/yasincidem/blockcanvas/core/model/Port$Companion;
 	public synthetic fun <init> (Ljava/lang/String;Lcom/yasincidem/blockcanvas/core/model/PortSide;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1--DG2Rr0 ()Ljava/lang/String;
 	public final fun component2 ()Lcom/yasincidem/blockcanvas/core/model/PortSide;
@@ -223,7 +328,23 @@ public final class com/yasincidem/blockcanvas/core/model/Port {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final synthetic class com/yasincidem/blockcanvas/core/model/Port$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/yasincidem/blockcanvas/core/model/Port$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/yasincidem/blockcanvas/core/model/Port;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/yasincidem/blockcanvas/core/model/Port;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/yasincidem/blockcanvas/core/model/Port$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
 public final class com/yasincidem/blockcanvas/core/model/PortId {
+	public static final field Companion Lcom/yasincidem/blockcanvas/core/model/PortId$Companion;
 	public static final synthetic fun box-impl (Ljava/lang/String;)Lcom/yasincidem/blockcanvas/core/model/PortId;
 	public static fun constructor-impl (Ljava/lang/String;)Ljava/lang/String;
 	public fun equals (Ljava/lang/Object;)Z
@@ -237,18 +358,38 @@ public final class com/yasincidem/blockcanvas/core/model/PortId {
 	public final synthetic fun unbox-impl ()Ljava/lang/String;
 }
 
+public final synthetic class com/yasincidem/blockcanvas/core/model/PortId$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/yasincidem/blockcanvas/core/model/PortId$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun deserialize-ugp8yek (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/String;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public final fun serialize-IYt07Kg (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/String;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/yasincidem/blockcanvas/core/model/PortId$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
 public final class com/yasincidem/blockcanvas/core/model/PortPositionKt {
 	public static final fun computePortPosition (Lcom/yasincidem/blockcanvas/core/model/Node;Lcom/yasincidem/blockcanvas/core/model/Port;)Lcom/yasincidem/blockcanvas/core/geometry/Offset;
 }
 
 public final class com/yasincidem/blockcanvas/core/model/PortSide : java/lang/Enum {
 	public static final field Bottom Lcom/yasincidem/blockcanvas/core/model/PortSide;
+	public static final field Companion Lcom/yasincidem/blockcanvas/core/model/PortSide$Companion;
 	public static final field Left Lcom/yasincidem/blockcanvas/core/model/PortSide;
 	public static final field Right Lcom/yasincidem/blockcanvas/core/model/PortSide;
 	public static final field Top Lcom/yasincidem/blockcanvas/core/model/PortSide;
 	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Lcom/yasincidem/blockcanvas/core/model/PortSide;
 	public static fun values ()[Lcom/yasincidem/blockcanvas/core/model/PortSide;
+}
+
+public final class com/yasincidem/blockcanvas/core/model/PortSide$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 
 public abstract interface class com/yasincidem/blockcanvas/core/rules/ConnectionError {
@@ -297,6 +438,7 @@ public final class com/yasincidem/blockcanvas/core/rules/DefaultConnectionValida
 }
 
 public final class com/yasincidem/blockcanvas/core/state/CanvasState {
+	public static final field Companion Lcom/yasincidem/blockcanvas/core/state/CanvasState$Companion;
 	public fun <init> ()V
 	public fun <init> (Ljava/util/Map;Ljava/util/Map;)V
 	public synthetic fun <init> (Ljava/util/Map;Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
@@ -316,7 +458,23 @@ public final class com/yasincidem/blockcanvas/core/state/CanvasState {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final synthetic class com/yasincidem/blockcanvas/core/state/CanvasState$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/yasincidem/blockcanvas/core/state/CanvasState$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/yasincidem/blockcanvas/core/state/CanvasState;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/yasincidem/blockcanvas/core/state/CanvasState;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/yasincidem/blockcanvas/core/state/CanvasState$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
+}
+
 public final class com/yasincidem/blockcanvas/core/state/SelectionState {
+	public static final field Companion Lcom/yasincidem/blockcanvas/core/state/SelectionState$Companion;
 	public fun <init> ()V
 	public fun <init> (Ljava/util/Set;Ljava/util/Set;)V
 	public synthetic fun <init> (Ljava/util/Set;Ljava/util/Set;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
@@ -340,5 +498,20 @@ public final class com/yasincidem/blockcanvas/core/state/SelectionState {
 	public fun toString ()Ljava/lang/String;
 	public final fun toggle-UUhBwN4 (Ljava/lang/String;)Lcom/yasincidem/blockcanvas/core/state/SelectionState;
 	public final fun toggle-lEqb4Is (Ljava/lang/String;)Lcom/yasincidem/blockcanvas/core/state/SelectionState;
+}
+
+public final synthetic class com/yasincidem/blockcanvas/core/state/SelectionState$$serializer : kotlinx/serialization/internal/GeneratedSerializer {
+	public static final field INSTANCE Lcom/yasincidem/blockcanvas/core/state/SelectionState$$serializer;
+	public final fun childSerializers ()[Lkotlinx/serialization/KSerializer;
+	public final fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Lcom/yasincidem/blockcanvas/core/state/SelectionState;
+	public synthetic fun deserialize (Lkotlinx/serialization/encoding/Decoder;)Ljava/lang/Object;
+	public final fun getDescriptor ()Lkotlinx/serialization/descriptors/SerialDescriptor;
+	public final fun serialize (Lkotlinx/serialization/encoding/Encoder;Lcom/yasincidem/blockcanvas/core/state/SelectionState;)V
+	public synthetic fun serialize (Lkotlinx/serialization/encoding/Encoder;Ljava/lang/Object;)V
+	public fun typeParametersSerializers ()[Lkotlinx/serialization/KSerializer;
+}
+
+public final class com/yasincidem/blockcanvas/core/state/SelectionState$Companion {
+	public final fun serializer ()Lkotlinx/serialization/KSerializer;
 }
 

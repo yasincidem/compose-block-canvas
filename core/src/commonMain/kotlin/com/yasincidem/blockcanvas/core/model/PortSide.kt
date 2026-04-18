@@ -1,5 +1,7 @@
 package com.yasincidem.blockcanvas.core.model
 
+import kotlinx.serialization.Serializable
+
 /**
  * The side of a node's bounding box on which a port sits.
  *
@@ -9,4 +11,5 @@ package com.yasincidem.blockcanvas.core.model
  *
  * @since 0.1.0
  */
+@Serializable
 public enum class PortSide { Top, Right, Bottom, Left }

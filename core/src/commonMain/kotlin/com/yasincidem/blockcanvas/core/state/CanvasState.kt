@@ -5,6 +5,7 @@ import com.yasincidem.blockcanvas.core.model.Edge
 import com.yasincidem.blockcanvas.core.model.EdgeId
 import com.yasincidem.blockcanvas.core.model.Node
 import com.yasincidem.blockcanvas.core.model.NodeId
+import kotlinx.serialization.Serializable
 
 /**
  * Immutable state of the block canvas.
@@ -12,6 +13,7 @@ import com.yasincidem.blockcanvas.core.model.NodeId
  * @property nodes A map of all current nodes by their stable IDs.
  * @property edges A map of all current edges by their stable IDs.
  */
+@Serializable
 public data class CanvasState(
     public val nodes: Map<NodeId, Node> = emptyMap(),
     public val edges: Map<EdgeId, Edge> = emptyMap(),

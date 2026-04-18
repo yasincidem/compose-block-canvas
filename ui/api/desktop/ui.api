@@ -11,6 +11,9 @@ public final class com/yasincidem/blockcanvas/ui/state/BlockCanvasState {
 	public final fun addNode (Lcom/yasincidem/blockcanvas/core/model/Node;)V
 	public final fun clearPendingConnection ()V
 	public final fun clearSelection ()V
+	public final fun commitNodePositions (Ljava/util/Map;)V
+	public final fun getCanRedo ()Z
+	public final fun getCanUndo ()Z
 	public final fun getCanvasState ()Lcom/yasincidem/blockcanvas/core/state/CanvasState;
 	public final fun getNodePositions ()Landroidx/compose/runtime/snapshots/SnapshotStateMap;
 	public final fun getPendingConnection ()Lcom/yasincidem/blockcanvas/ui/state/PendingConnection;
@@ -18,6 +21,7 @@ public final class com/yasincidem/blockcanvas/ui/state/BlockCanvasState {
 	public final fun getSnapToGrid ()F
 	public final fun getViewport ()Lcom/yasincidem/blockcanvas/core/geometry/Viewport;
 	public final fun moveNode-vHiRkdI (Ljava/lang/String;Lcom/yasincidem/blockcanvas/core/geometry/Offset;)V
+	public final fun redo ()V
 	public final fun removeEdge-lEqb4Is (Ljava/lang/String;)V
 	public final fun removeNode-UUhBwN4 (Ljava/lang/String;)V
 	public final fun selectOnly-UUhBwN4 (Ljava/lang/String;)V
@@ -26,6 +30,7 @@ public final class com/yasincidem/blockcanvas/ui/state/BlockCanvasState {
 	public final fun startPendingConnection (Lcom/yasincidem/blockcanvas/core/model/EndPoint;Lcom/yasincidem/blockcanvas/core/geometry/Offset;)V
 	public final fun toggleSelection-UUhBwN4 (Ljava/lang/String;)V
 	public final fun toggleSelection-lEqb4Is (Ljava/lang/String;)V
+	public final fun undo ()V
 	public final fun updatePendingConnection (Lcom/yasincidem/blockcanvas/core/geometry/Offset;)V
 	public final fun updateViewport (Lcom/yasincidem/blockcanvas/core/geometry/Viewport;)V
 }

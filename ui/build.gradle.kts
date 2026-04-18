@@ -62,3 +62,7 @@ dokka {
         includes.from("Module.md")
     }
 }
+
+composeCompiler {
+    stabilityConfigurationFile.set(file("stability_config.conf"))
+}

@@ -1,6 +1,7 @@
 package com.yasincidem.blockcanvas.core.model
 
 import kotlin.jvm.JvmInline
+import kotlinx.serialization.Serializable
 
 /**
  * Stable, type-safe identifier for an [Edge] connecting two ports.
@@ -10,6 +11,7 @@ import kotlin.jvm.JvmInline
  * @property value The raw identifier. Must be non-blank.
  * @since 0.1.0
  */
+@Serializable
 @JvmInline
 public value class EdgeId(public val value: String) {
     init {

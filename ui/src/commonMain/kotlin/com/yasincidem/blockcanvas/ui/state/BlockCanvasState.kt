@@ -61,6 +61,51 @@ public class BlockCanvasState(
     public var pendingConnection: PendingConnection? by mutableStateOf(null)
         private set
 
+    /** Stack of past states for [undo]. */
+    private val undoStack = mutableListOf<CanvasState>()
+
+    /** Stack of reverted states for [redo]. */
+    private val redoStack = mutableListOf<CanvasState>()
+
+    /** Whether an [undo] operation can be performed. */
+    public val canUndo: Boolean get() = undoStack.isNotEmpty()
+
+    /** Whether a [redo] operation can be performed. */
+    public val canRedo: Boolean get() = redoStack.isNotEmpty()
+
+    /** Centralized state mutator that pushes to the history stack. */
+    private fun mutateCanvas(mutation: (CanvasState) -> CanvasState) {
+        val newState = mutation(canvasState)
+        if (newState != canvasState) {
+            undoStack.add(canvasState)
+            redoStack.clear()
+            canvasState = newState
+        }
+    }
+
+    /** Reverts the last layout/structure modification. */
+    public fun undo() {
+        if (undoStack.isNotEmpty()) {
+            redoStack.add(canvasState)
+            val prevState = undoStack.removeLast()
+            canvasState = prevState
+            prevState.nodes.values.forEach { nodePositions[it.id] = it.position }
+            // Remove lingering tracked positions for deleted nodes
+            nodePositions.keys.retainAll(prevState.nodes.keys)
+        }
+    }
+
+    /** Re-applies the last reverted layout/structure modification. */
+    public fun redo() {
+        if (redoStack.isNotEmpty()) {
+            undoStack.add(canvasState)
+            val nextState = redoStack.removeLast()
+            canvasState = nextState
+            nextState.nodes.values.forEach { nodePositions[it.id] = it.position }
+            nodePositions.keys.retainAll(nextState.nodes.keys)
+        }
+    }
+
     /** Starts a pending connection from [from] at the given world position. */
     public fun startPendingConnection(from: EndPoint, worldPos: Offset) {
         pendingConnection = PendingConnection(from, worldPos)
@@ -83,11 +128,25 @@ public class BlockCanvasState(
 
     /**
      * Moves a node to [newPosition] in world space, updating both [nodePositions] and
-     * [canvasState]. No-op if [id] is not found.
+     * [canvasState] atomically.
      */
     public fun moveNode(id: NodeId, newPosition: Offset) {
         nodePositions[id] = newPosition
-        canvasState = canvasState.moveNode(id, newPosition)
+        mutateCanvas { it.moveNode(id, newPosition) }
+    }
+
+    /**
+     * Moves multiple nodes atomically, producing exactly one frame in the undo history.
+     */
+    public fun commitNodePositions(positions: Map<NodeId, Offset>) {
+        mutateCanvas { state ->
+            var finalState = state
+            for ((id, pos) in positions) {
+                nodePositions[id] = pos
+                finalState = finalState.moveNode(id, pos)
+            }
+            finalState
+        }
     }
 
     /**
@@ -101,7 +160,7 @@ public class BlockCanvasState(
     /** Adds or updates a node in the canvas. */
     public fun addNode(node: Node) {
         nodePositions[node.id] = node.position
-        canvasState = canvasState.addNode(node)
+        mutateCanvas { it.addNode(node) }
     }
 
     /**
@@ -110,18 +169,18 @@ public class BlockCanvasState(
      */
     public fun removeNode(id: NodeId) {
         nodePositions.remove(id)
-        canvasState = canvasState.removeNode(id)
+        mutateCanvas { it.removeNode(id) }
         selectionState = selectionState.remove(id)
     }
 
     /** Adds an edge to the canvas. */
     public fun addEdge(edge: Edge) {
-        canvasState = canvasState.addEdge(edge)
+        mutateCanvas { it.addEdge(edge) }
     }
 
     /** Removes an edge and clears its selection status. */
     public fun removeEdge(id: EdgeId) {
-        canvasState = canvasState.removeEdge(id)
+        mutateCanvas { it.removeEdge(id) }
         selectionState = selectionState.remove(id)
     }
 

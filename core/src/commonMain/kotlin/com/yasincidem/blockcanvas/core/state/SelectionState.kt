@@ -2,6 +2,7 @@ package com.yasincidem.blockcanvas.core.state
 
 import com.yasincidem.blockcanvas.core.model.EdgeId
 import com.yasincidem.blockcanvas.core.model.NodeId
+import kotlinx.serialization.Serializable
 
 /**
  * Immutable state managing selection of nodes and edges in the canvas.
@@ -14,6 +15,7 @@ import com.yasincidem.blockcanvas.core.model.NodeId
  * @property selectedNodes A set of currently selected [NodeId]s.
  * @property selectedEdges A set of currently selected [EdgeId]s.
  */
+@Serializable
 public data class SelectionState(
     public val selectedNodes: Set<NodeId> = emptySet(),
     public val selectedEdges: Set<EdgeId> = emptySet(),

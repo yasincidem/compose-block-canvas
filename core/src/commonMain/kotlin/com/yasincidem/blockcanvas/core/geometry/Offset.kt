@@ -2,6 +2,7 @@ package com.yasincidem.blockcanvas.core.geometry
 
 import kotlin.jvm.JvmStatic
 import kotlin.math.hypot
+import kotlinx.serialization.Serializable
 
 /**
  * An immutable 2D point or vector expressed in canvas-space floating-point
@@ -25,6 +26,7 @@ import kotlin.math.hypot
  * @property y Vertical component.
  * @since 0.1.0
  */
+@Serializable
 public data class Offset(
     public val x: Float,
     public val y: Float,

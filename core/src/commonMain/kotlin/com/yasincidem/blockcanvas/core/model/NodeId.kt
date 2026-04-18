@@ -1,6 +1,7 @@
 package com.yasincidem.blockcanvas.core.model
 
 import kotlin.jvm.JvmInline
+import kotlinx.serialization.Serializable
 
 /**
  * Stable, type-safe identifier for a [Node] inside a canvas.
@@ -18,6 +19,7 @@ import kotlin.jvm.JvmInline
  * @property value The raw identifier. Must be non-blank.
  * @since 0.1.0
  */
+@Serializable
 @JvmInline
 public value class NodeId(public val value: String) {
     init {

@@ -1,5 +1,7 @@
 package com.yasincidem.blockcanvas.core.model
 
+import kotlinx.serialization.Serializable
+
 /**
  * A directed connection between two ports in the canvas.
  *
@@ -18,6 +20,7 @@ package com.yasincidem.blockcanvas.core.model
  * @property to The endpoint the edge enters (typically an `In` port).
  * @since 0.1.0
  */
+@Serializable
 public data class Edge(
     public val id: EdgeId,
     public val from: EndPoint,

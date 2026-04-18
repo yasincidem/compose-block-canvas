@@ -1,6 +1,7 @@
 package com.yasincidem.blockcanvas.core.model
 
 import com.yasincidem.blockcanvas.core.geometry.Offset
+import kotlinx.serialization.Serializable
 
 /**
  * A draggable block in the canvas.
@@ -27,6 +28,7 @@ import com.yasincidem.blockcanvas.core.geometry.Offset
  * @property ports Immutable list of ports attached to this node.
  * @since 0.1.0
  */
+@Serializable
 public data class Node(
     public val id: NodeId,
     public val position: Offset,

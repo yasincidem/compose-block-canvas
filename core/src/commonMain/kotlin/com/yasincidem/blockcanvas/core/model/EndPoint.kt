@@ -1,5 +1,7 @@
 package com.yasincidem.blockcanvas.core.model
 
+import kotlinx.serialization.Serializable
+
 /**
  * One end of an [Edge]: a reference to a specific port on a specific node.
  *
@@ -11,6 +13,7 @@ package com.yasincidem.blockcanvas.core.model
  * @property port The port on that node.
  * @since 0.1.0
  */
+@Serializable
 public data class EndPoint(
     public val node: NodeId,
     public val port: PortId,
