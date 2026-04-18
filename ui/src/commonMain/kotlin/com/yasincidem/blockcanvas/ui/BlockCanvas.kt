@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.yasincidem.blockcanvas.core.hittest.DefaultHitTester
 import com.yasincidem.blockcanvas.core.hittest.HitResult
+import com.yasincidem.blockcanvas.core.model.EdgeId
 import com.yasincidem.blockcanvas.core.model.EndPoint
 import com.yasincidem.blockcanvas.core.model.Node
 import com.yasincidem.blockcanvas.core.model.computePortPosition
@@ -88,11 +89,36 @@ public fun BlockCanvas(
                     val isShiftPressed = event.keyboardModifiers.isShiftPressed
                     val worldPos = state.viewport.screenToWorld(down.position.toCore())
 
+                    // 1. Edge Hit Testing (drawn in UI so hit-tested here)
+                    val edgeHit = hitTestEdges(worldPos, state)
+                    if (edgeHit != null) {
+                        down.consume()
+                        if (isShiftPressed) {
+                            state.toggleSelection(edgeHit)
+                        } else {
+                            state.selectOnly(edgeHit)
+                        }
+                        return@awaitEachGesture
+                    }
+
+                    // 2. Core Hit Testing for Ports and Nodes
                     when (val hit = hitTester.hitTest(worldPos, state.canvasState.nodes.values)) {
                         is HitResult.Port -> {
                             down.consume()
-                            val from = EndPoint(hit.nodeId, hit.portId)
-                            state.startPendingConnection(from, worldPos)
+                            val clickedEndpoint = EndPoint(hit.nodeId, hit.portId)
+                            
+                            // Reconnection logic: if port has an edge, rip it off to reposition!
+                            val edgeToDetach = state.canvasState.edges.values.find { it.to == clickedEndpoint }
+                                ?: state.canvasState.edges.values.find { it.from == clickedEndpoint }
+                            
+                            val fixedEnd = if (edgeToDetach != null) {
+                                state.removeEdge(edgeToDetach.id)
+                                if (edgeToDetach.to == clickedEndpoint) edgeToDetach.from else edgeToDetach.to
+                            } else {
+                                clickedEndpoint
+                            }
+
+                            state.startPendingConnection(fixedEnd, worldPos)
 
                             var upHit: HitResult = HitResult.Empty
                             while (true) {
@@ -109,7 +135,7 @@ public fun BlockCanvas(
 
                             if (upHit is HitResult.Port) {
                                 val to = EndPoint(upHit.nodeId, upHit.portId)
-                                if (from != to) onConnectionRequestState(from, to)
+                                if (fixedEnd != to) onConnectionRequestState(fixedEnd, to)
                             }
                             state.clearPendingConnection()
                         }
@@ -214,7 +240,9 @@ public fun BlockCanvas(
                 val toScreen = state.viewport.worldToScreen(
                     computePortPosition(toNode.copy(position = toPos), toPort)
                 ).toCompose()
-                drawEdgeBezier(fromScreen, toScreen)
+                
+                val isSelected = state.selectionState.isSelected(edge.id)
+                drawEdgeBezier(fromScreen, toScreen, selected = isSelected)
             }
 
             // Live bezier while a connection is being drawn.
@@ -271,6 +299,7 @@ private fun DrawScope.drawEdgeBezier(
     from: androidx.compose.ui.geometry.Offset,
     to: androidx.compose.ui.geometry.Offset,
     pending: Boolean = false,
+    selected: Boolean = false,
 ) {
     val handle = abs(to.x - from.x).coerceAtLeast(60f) * 0.5f
     val path = Path().apply {
@@ -281,11 +310,62 @@ private fun DrawScope.drawEdgeBezier(
             x3 = to.x,            y3 = to.y,
         )
     }
+    
+    if (selected) {
+        val highlightColor = Color.White.copy(alpha = 0.5f)
+        drawPath(path, color = highlightColor, style = Stroke(width = 8f))
+    }
+    
     val color = if (pending) Color(0xFF_5B8DEF).copy(alpha = 0.55f) else Color(0xFF_5B8DEF)
     val stroke = if (pending) {
-        Stroke(width = 2f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 6f)))
+        Stroke(width = 2.5f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 6f)))
     } else {
-        Stroke(width = 2f)
+        Stroke(width = 2.5f)
     }
     drawPath(path, color = color, style = stroke)
+}
+
+private fun hitTestEdges(
+    worldPos: CoreOffset,
+    state: BlockCanvasState,
+    tolerancePx: Float = 10f
+): EdgeId? {
+    val scaledTolerance = tolerancePx / state.viewport.zoom
+    val squaredTolerance = scaledTolerance * scaledTolerance
+
+    for (edge in state.canvasState.edges.values.reversed()) {
+        val fromNode = state.canvasState.nodes[edge.from.node] ?: continue
+        val toNode = state.canvasState.nodes[edge.to.node] ?: continue
+        val fromPort = fromNode.ports.find { it.id == edge.from.port } ?: continue
+        val toPort = toNode.ports.find { it.id == edge.to.port } ?: continue
+
+        val fromPos = state.nodePositions[fromNode.id] ?: fromNode.position
+        val toPos = state.nodePositions[toNode.id] ?: toNode.position
+        val p0 = computePortPosition(fromNode.copy(position = fromPos), fromPort)
+        val p3 = computePortPosition(toNode.copy(position = toPos), toPort)
+
+        val handle = abs(p3.x - p0.x).coerceAtLeast(60f) * 0.5f
+        val p1 = CoreOffset(p0.x + handle, p0.y)
+        val p2 = CoreOffset(p3.x - handle, p3.y)
+
+        // Sample points along the bezier curve
+        for (i in 0..20) {
+            val t = i / 20f
+            val u = 1 - t
+            val u2 = u * u
+            val u3 = u2 * u
+            val t2 = t * t
+            val t3 = t2 * t
+
+            val x = u3 * p0.x + 3 * u2 * t * p1.x + 3 * u * t2 * p2.x + t3 * p3.x
+            val y = u3 * p0.y + 3 * u2 * t * p1.y + 3 * u * t2 * p2.y + t3 * p3.y
+
+            val dx = x - worldPos.x
+            val dy = y - worldPos.y
+            if (dx * dx + dy * dy <= squaredTolerance) {
+                return edge.id
+            }
+        }
+    }
+    return null
 }

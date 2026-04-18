@@ -140,6 +140,11 @@ public class BlockCanvasState(
         selectionState = selectionState.selectOnly(id)
     }
 
+    /** Exclusively selects a single edge, clearing other selections. */
+    public fun selectOnly(id: EdgeId) {
+        selectionState = selectionState.selectOnly(id)
+    }
+
     /** Clears all active selections. */
     public fun clearSelection() {
         selectionState = selectionState.clear()

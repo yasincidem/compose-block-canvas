@@ -21,6 +21,7 @@ public final class com/yasincidem/blockcanvas/ui/state/BlockCanvasState {
 	public final fun removeEdge-lEqb4Is (Ljava/lang/String;)V
 	public final fun removeNode-UUhBwN4 (Ljava/lang/String;)V
 	public final fun selectOnly-UUhBwN4 (Ljava/lang/String;)V
+	public final fun selectOnly-lEqb4Is (Ljava/lang/String;)V
 	public final fun setSnapToGrid (F)V
 	public final fun startPendingConnection (Lcom/yasincidem/blockcanvas/core/model/EndPoint;Lcom/yasincidem/blockcanvas/core/geometry/Offset;)V
 	public final fun toggleSelection-UUhBwN4 (Ljava/lang/String;)V
