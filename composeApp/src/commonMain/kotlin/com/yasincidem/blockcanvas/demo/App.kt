@@ -33,7 +33,10 @@ import com.yasincidem.blockcanvas.core.model.Port
 import com.yasincidem.blockcanvas.core.model.PortId
 import com.yasincidem.blockcanvas.core.model.PortSide
 import com.yasincidem.blockcanvas.core.state.CanvasState
+import com.yasincidem.blockcanvas.core.builder.buildCanvasState
 import com.yasincidem.blockcanvas.ui.BlockCanvas
+import com.yasincidem.blockcanvas.ui.state.GridConfig
+import com.yasincidem.blockcanvas.ui.state.GridType
 import com.yasincidem.blockcanvas.ui.state.rememberBlockCanvasState
 
 /** Pixel size of the port dot indicator. */
@@ -66,19 +69,39 @@ fun App() {
             val gap   = 60f  * density
 
             val initialCanvas = remember(density) {
-                CanvasState()
-                    .addNode(fourPortNode("node_1", gap,             200f * density, nodeW, nodeH))
-                    .addNode(fourPortNode("node_2", gap + nodeW + gap, 200f * density, nodeW, nodeH))
-                    .addNode(fourPortNode("node_3", gap + (nodeW + gap) * 2, 200f * density, nodeW, nodeH))
-                    .addEdge(Edge(EdgeId("e1"),
-                        from = EndPoint(NodeId("node_1"), PortId("right")),
-                        to   = EndPoint(NodeId("node_2"), PortId("left"))))
-                    .addEdge(Edge(EdgeId("e2"),
-                        from = EndPoint(NodeId("node_2"), PortId("right")),
-                        to   = EndPoint(NodeId("node_3"), PortId("left"))))
+                buildCanvasState {
+                    node("node_1") {
+                        at(x = gap, y = 200f * density)
+                        size(nodeW, nodeH)
+                        port("right", PortSide.Right)
+                    }
+                    node("node_2") {
+                        rightOf("node_1", gap = gap)
+                        size(nodeW, nodeH)
+                        port("left", PortSide.Left)
+                        port("right", PortSide.Right)
+                    }
+                    node("node_3") {
+                        rightOf("node_2", gap = gap)
+                        size(nodeW, nodeH)
+                        port("left", PortSide.Left)
+                    }
+
+                    connect("node_1", "right") linksTo connect("node_2", "left")
+                    connect("node_2", "right") linksTo connect("node_3", "left")
+                }
             }
 
-            val canvasState = rememberBlockCanvasState(initialCanvasState = initialCanvas)
+            val canvasState = rememberBlockCanvasState(
+                initialCanvasState = initialCanvas,
+                gridConfig = GridConfig(
+                    type = GridType.Dots,
+                    spacing = 20f,
+                    snapToGrid = true,
+                    backgroundColor = Color.Unspecified,
+                    gridColor = Color.White.copy(alpha = 0.1f)
+                )
+            )
 
             BlockCanvas(
                 state = canvasState,
@@ -128,21 +151,29 @@ fun App() {
                 }
             )
 
-            // Undo / Redo Overlay Controls
+            // Overlay Controls
             Box(modifier = Modifier.fillMaxSize()) {
                 Row(modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp)) {
-                    Button(
-                        onClick = { canvasState.undo() },
-                        enabled = canvasState.canUndo
-                    ) {
-                        Text("Undo")
-                    }
+                    Button(onClick = { canvasState.undo() }, enabled = canvasState.canUndo) { Text("Undo") }
                     Spacer(modifier = Modifier.width(16.dp))
-                    Button(
-                        onClick = { canvasState.redo() },
-                        enabled = canvasState.canRedo
-                    ) {
-                        Text("Redo")
+                    Button(onClick = { canvasState.redo() }, enabled = canvasState.canRedo) { Text("Redo") }
+                }
+
+                Row(modifier = Modifier.align(Alignment.TopCenter).padding(top = 16.dp)) {
+                    Button(onClick = { 
+                        canvasState.gridConfig = canvasState.gridConfig.copy(
+                            type = if (canvasState.gridConfig.type == GridType.Dots) GridType.Lines else GridType.Dots
+                        )
+                    }) {
+                        Text(if (canvasState.gridConfig.type == GridType.Dots) "Switch to Lines" else "Switch to Dots")
+                    }
+                    Spacer(Modifier.width(16.dp))
+                    Button(onClick = {
+                        canvasState.gridConfig = canvasState.gridConfig.copy(
+                            snapToGrid = !canvasState.gridConfig.snapToGrid
+                        )
+                    }) {
+                        Text(if (canvasState.gridConfig.snapToGrid) "Disable Snap" else "Enable Snap")
                     }
                 }
             }

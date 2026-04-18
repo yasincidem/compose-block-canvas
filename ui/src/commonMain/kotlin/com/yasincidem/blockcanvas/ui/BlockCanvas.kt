@@ -1,6 +1,7 @@
 package com.yasincidem.blockcanvas.ui
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTransformGestures
@@ -32,6 +33,8 @@ import com.yasincidem.blockcanvas.core.model.EndPoint
 import com.yasincidem.blockcanvas.core.model.Node
 import com.yasincidem.blockcanvas.core.model.computePortPosition
 import com.yasincidem.blockcanvas.ui.state.BlockCanvasState
+import com.yasincidem.blockcanvas.ui.state.GridConfig
+import com.yasincidem.blockcanvas.ui.state.GridType
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import com.yasincidem.blockcanvas.core.geometry.Offset as CoreOffset
@@ -180,15 +183,8 @@ public fun BlockCanvas(
                                     val startPos = startPositions[selectedId] ?: return@forEach
                                     val rawPos = CoreOffset(startPos.x + totalDelta.x, startPos.y + totalDelta.y)
                                     
-                                    val snappedPos = if (state.snapToGrid > 0f) {
-                                        CoreOffset(
-                                            x = (rawPos.x / state.snapToGrid).roundToInt() * state.snapToGrid,
-                                            y = (rawPos.y / state.snapToGrid).roundToInt() * state.snapToGrid
-                                        )
-                                    } else {
-                                        rawPos
-                                    }
-                                    state.moveNodeDuringDrag(selectedId, snappedPos)
+                                    // Pixel-perfect snap using state helper
+                                    state.moveNodeDuringDrag(selectedId, state.snap(rawPos))
                                 }
                             }
                         }
@@ -203,28 +199,40 @@ public fun BlockCanvas(
                 }
             }
     ) {
-        // z-order: grid behind, edges behind, nodes above.
-        
+        // Background
+        Box(Modifier.fillMaxSize().background(state.gridConfig.backgroundColor))
+
         // Grid layer
-        if (state.snapToGrid > 0f) {
+        val grid = state.gridConfig
+        if (grid.type != GridType.None) {
             Canvas(modifier = Modifier.fillMaxSize()) {
-                val scaledGrid = state.snapToGrid * state.viewport.zoom
-                if (scaledGrid < 10f) return@Canvas // Too small to see, and would kill performance
+                val spacing = grid.spacing
+                val panX = state.viewport.pan.x % spacing
+                val panY = state.viewport.pan.y % spacing
                 
-                // modulo to find the starting offset
-                val panX = state.viewport.pan.x % scaledGrid
-                val panY = state.viewport.pan.y % scaledGrid
-                val dotRadius = 1.dp.toPx()
-                val dotColor = Color.White.copy(alpha = 0.15f)
-                
-                var x = if (panX > 0) panX - scaledGrid else panX
-                while (x < size.width) {
-                    var y = if (panY > 0) panY - scaledGrid else panY
-                    while (y < size.height) {
-                        drawCircle(dotColor, radius = dotRadius, center = androidx.compose.ui.geometry.Offset(x, y))
-                        y += scaledGrid
+                if (grid.type == GridType.Lines) {
+                    var lx = if (panX > 0) panX - spacing else panX
+                    while (lx < size.width) {
+                        drawLine(grid.gridColor, androidx.compose.ui.geometry.Offset(lx, 0f), androidx.compose.ui.geometry.Offset(lx, size.height), strokeWidth = 1f)
+                        lx += spacing
                     }
-                    x += scaledGrid
+                    var ly = if (panY > 0) panY - spacing else panY
+                    while (ly < size.height) {
+                        drawLine(grid.gridColor, androidx.compose.ui.geometry.Offset(0f, ly), androidx.compose.ui.geometry.Offset(size.width, ly), strokeWidth = 1f)
+                        ly += spacing
+                    }
+                } else if (grid.type == GridType.Dots) {
+                    var dx = if (panX > 0) panX - spacing else panX
+                    while (dx < size.width) {
+                        var dy = if (panY > 0) panY - spacing else panY
+                        while (dy < size.height) {
+                            if (spacing >= 10f) { // Performance guard
+                                drawCircle(grid.gridColor, radius = 1.dp.toPx(), center = androidx.compose.ui.geometry.Offset(dx, dy))
+                            }
+                            dy += spacing
+                        }
+                        dx += spacing
+                    }
                 }
             }
         }

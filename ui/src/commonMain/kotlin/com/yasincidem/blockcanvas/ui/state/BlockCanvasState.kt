@@ -9,6 +9,8 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateMap
+import androidx.compose.runtime.mutableStateListOf
+import kotlin.math.round
 import com.yasincidem.blockcanvas.core.geometry.Offset
 import com.yasincidem.blockcanvas.core.geometry.Viewport
 import com.yasincidem.blockcanvas.core.model.Edge
@@ -37,8 +39,10 @@ public class BlockCanvasState(
     initialCanvasState: CanvasState = CanvasState(),
     initialSelectionState: SelectionState = SelectionState(),
     initialViewport: Viewport = Viewport.Default,
-    public var snapToGrid: Float = 20f,
+    initialGridConfig: GridConfig = GridConfig.Default,
 ) {
+    public var gridConfig: GridConfig by mutableStateOf(initialGridConfig)
+
     public var canvasState: CanvasState by mutableStateOf(initialCanvasState)
         private set
 
@@ -128,12 +132,31 @@ public class BlockCanvasState(
     }
 
     /**
+     * Snaps a world-space coordinate to the nearest visible grid point on the screen.
+     * accounts for current zoom and pan to achieve pixel-perfect alignment.
+     */
+    public fun snap(pos: Offset): Offset {
+        if (!gridConfig.snapToGrid || gridConfig.type == GridType.None) return pos
+        
+        val s = gridConfig.spacing
+        val z = viewport.zoom
+        val px = viewport.pan.x
+        val py = viewport.pan.y
+        
+        return Offset(
+            x = (round((pos.x * z + px) / s) * s - px) / z,
+            y = (round((pos.y * z + py) / s) * s - py) / z
+        )
+    }
+
+    /**
      * Moves a node to [newPosition] in world space, updating both [nodePositions] and
      * [canvasState] atomically.
      */
     public fun moveNode(id: NodeId, newPosition: Offset) {
-        nodePositions[id] = newPosition
-        mutateCanvas { it.moveNode(id, newPosition) }
+        val snappedPos = snap(newPosition)
+        nodePositions[id] = snappedPos
+        mutateCanvas { it.moveNode(id, snappedPos) }
     }
 
     /**
@@ -217,9 +240,9 @@ public fun rememberBlockCanvasState(
     initialCanvasState: CanvasState = CanvasState(),
     initialSelectionState: SelectionState = SelectionState(),
     initialViewport: Viewport = Viewport.Default,
-    snapToGrid: Float = 20f,
+    gridConfig: GridConfig = GridConfig.Default,
 ): BlockCanvasState {
     return remember {
-        BlockCanvasState(initialCanvasState, initialSelectionState, initialViewport, snapToGrid)
+        BlockCanvasState(initialCanvasState, initialSelectionState, initialViewport, gridConfig)
     }
 }
