@@ -51,6 +51,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.yasincidem.blockcanvas.ui.state.CanvasInteraction
+import com.yasincidem.blockcanvas.ui.state.EdgeEndpoint
 import com.yasincidem.blockcanvas.ui.state.MarqueeMode
 import com.yasincidem.blockcanvas.core.alignment.Axis
 import com.yasincidem.blockcanvas.core.alignment.DistanceLabel
@@ -187,7 +188,44 @@ public fun BlockCanvas(
                     // Grab keyboard focus on every tap so Delete/Backspace work immediately.
                     focusRequester.requestFocus()
 
-                    // 1. Edge Hit Testing (drawn in UI so hit-tested here)
+                    // 1. Endpoint handle hit-test (only when an edge is selected)
+                    val selectedEdgeId = state.selectionState.selectedEdges.singleOrNull()
+                    val handleHit = if (selectedEdgeId != null) {
+                        hitTestEdgeHandle(worldPos, selectedEdgeId, state)
+                    } else null
+
+                    if (handleHit != null) {
+                        val (edgeId, endpoint) = handleHit
+                        down.consume()
+                        state.startDraggingEdgeEndpoint(edgeId, endpoint, worldPos)
+                        var upHit: HitResult = HitResult.Empty
+                        while (true) {
+                            val ev = awaitPointerEvent()
+                            val change = ev.changes.find { it.id == down.id } ?: break
+                            change.consume()
+                            val curr = state.viewport.screenToWorld(change.position.toCore())
+                            state.updateDraggingEdgeEndpoint(curr)
+                            if (ev.changes.size > 1) break
+                            if (!change.pressed) {
+                                upHit = hitTester.hitTest(curr, state.canvasState.nodes.values,
+                                    positionOverrides = state.nodePositions)
+                                break
+                            }
+                        }
+                        state.cancelDraggingEdgeEndpoint()
+                        if (upHit is HitResult.Port) {
+                            val newEnd = EndPoint(upHit.nodeId, upHit.portId)
+                            state.reconnectEdge(edgeId, endpoint, newEnd)
+                            // keep edge selected after reconnect
+                            state.selectOnly(edgeId)
+                        } else {
+                            // Released on empty canvas → delete the edge
+                            state.removeEdge(edgeId)
+                        }
+                        return@awaitEachGesture
+                    }
+
+                    // 2. Edge body hit-test (select the edge)
                     val edgeHit = hitTestEdges(worldPos, state)
                     if (edgeHit != null) {
                         down.consume()
@@ -199,36 +237,24 @@ public fun BlockCanvas(
                         return@awaitEachGesture
                     }
 
-                    // 2. Core Hit Testing for Ports and Nodes
+                    // 3. Core hit-test for Ports and Nodes
                     when (val hit = hitTester.hitTest(worldPos, state.canvasState.nodes.values, positionOverrides = state.nodePositions)) {
                         is HitResult.Port -> {
                             down.consume()
                             val clickedEndpoint = EndPoint(hit.nodeId, hit.portId)
 
-                            // Click-click mode: if a connection is already pending, this is the second tap
+                            // Click-click mode: second tap commits the pending connection
                             val existing = state.pendingConnection
                             if (existing != null && existing.mode == com.yasincidem.blockcanvas.ui.state.ConnectionMode.Click) {
                                 state.tryCommitConnection(clickedEndpoint, onConnectionAttemptState)
                                 return@awaitEachGesture
                             }
 
-                            // Find an edge to potentially detach — but don't remove it yet.
-                            // Detach only happens once the user actually drags past the threshold.
-                            val edgeToDetach = state.canvasState.edges.values.find { it.to == clickedEndpoint }
-                                ?: state.canvasState.edges.values.find { it.from == clickedEndpoint }
-
-                            val sourceEnd = if (edgeToDetach != null) {
-                                // Pending source = the other end of the existing edge
-                                if (edgeToDetach.to == clickedEndpoint) edgeToDetach.from else edgeToDetach.to
-                            } else {
-                                clickedEndpoint
-                            }
-
-                            // Show pending line from the source immediately so it feels responsive.
-                            state.startPendingConnection(sourceEnd, worldPos, com.yasincidem.blockcanvas.ui.state.ConnectionMode.Drag)
+                            // Port press always starts a NEW pending connection — never detaches.
+                            // To break an existing edge, select it and drag its endpoint handles.
+                            state.startPendingConnection(clickedEndpoint, worldPos, com.yasincidem.blockcanvas.ui.state.ConnectionMode.Drag)
 
                             var totalMovePx = 0f
-                            var detached = false
                             var upHit: HitResult = HitResult.Empty
                             while (true) {
                                 val ev = awaitPointerEvent()
@@ -238,12 +264,6 @@ public fun BlockCanvas(
                                 state.updatePendingConnection(curr)
                                 val d = change.position - change.previousPosition
                                 totalMovePx += kotlin.math.sqrt(d.x * d.x + d.y * d.y)
-
-                                // Detach the existing edge only once the drag is confirmed real.
-                                if (!detached && edgeToDetach != null && totalMovePx >= tapThresholdPx) {
-                                    state.removeEdge(edgeToDetach.id)
-                                    detached = true
-                                }
 
                                 if (ev.changes.size > 1) break // Abort for multi-touch zoom
 
@@ -258,21 +278,17 @@ public fun BlockCanvas(
                                 // Released on a port → commit
                                 upHit is HitResult.Port -> {
                                     val to = EndPoint(upHit.nodeId, upHit.portId)
-                                    // Remove the old edge before committing so port is free for the new one
-                                    if (edgeToDetach != null && !detached) state.removeEdge(edgeToDetach.id)
                                     state.tryCommitConnection(to, onConnectionAttemptState)
                                 }
-                                // Quick tap → detach immediately, switch to click-click mode so user
-                                // can pick the new destination port with a second tap
+                                // Quick tap → switch to click-click mode
                                 totalMovePx < tapThresholdPx -> {
-                                    if (edgeToDetach != null) state.removeEdge(edgeToDetach.id)
                                     state.startPendingConnection(
-                                        sourceEnd,
+                                        clickedEndpoint,
                                         state.pendingConnection?.currentPointerWorld ?: worldPos,
                                         com.yasincidem.blockcanvas.ui.state.ConnectionMode.Click,
                                     )
                                 }
-                                // Dragged to empty space → cancel; if edge was detached, it stays removed
+                                // Dragged to empty space → cancel
                                 else -> {
                                     state.clearPendingConnection()
                                 }
@@ -672,6 +688,46 @@ public fun BlockCanvas(
                     animTime, density.density,
                     selected = isSelected,
                 )
+
+                // Draw endpoint handles when this edge is the single selected edge
+                if (isSelected && state.selectionState.selectedEdges.size == 1) {
+                    val dragging = state.interaction as? CanvasInteraction.DraggingEdgeEndpoint
+                    val srcWorld = if (dragging?.edgeId == edge.id && dragging.endpoint == EdgeEndpoint.Source)
+                        dragging.cursorWorld else fromWorld
+                    val tgtWorld = if (dragging?.edgeId == edge.id && dragging.endpoint == EdgeEndpoint.Target)
+                        dragging.cursorWorld else toWorld
+                    val handleColor = Color(0xFF5B8DEF)
+                    val handleRadius = (10f / state.viewport.zoom).coerceAtLeast(6f)
+                    val handleStroke = (2f / state.viewport.zoom).coerceAtLeast(1f)
+                    val srcScreen = state.viewport.worldToScreen(srcWorld).toCompose()
+                    val tgtScreen = state.viewport.worldToScreen(tgtWorld).toCompose()
+                    drawCircle(handleColor, handleRadius, srcScreen)
+                    drawCircle(Color.White, handleRadius - handleStroke * 2, srcScreen)
+                    drawCircle(handleColor, handleRadius, tgtScreen)
+                    drawCircle(Color.White, handleRadius - handleStroke * 2, tgtScreen)
+                }
+            }
+
+            // ── DraggingEdgeEndpoint: ghost edge from free end to cursor ─────
+            val draggingEndpoint = state.interaction as? CanvasInteraction.DraggingEdgeEndpoint
+            if (draggingEndpoint != null) {
+                val edge = state.canvasState.edges[draggingEndpoint.edgeId]
+                if (edge != null) {
+                    val fixedEndpoint = if (draggingEndpoint.endpoint == EdgeEndpoint.Source) edge.to else edge.from
+                    val fixedNode = state.canvasState.nodes[fixedEndpoint.node]
+                    val fixedPort = fixedNode?.ports?.find { it.id == fixedEndpoint.port }
+                    if (fixedNode != null && fixedPort != null) {
+                        val fixedPos = state.nodePositions[fixedNode.id] ?: fixedNode.position
+                        val fixedWorld = computePortPosition(fixedPos, fixedNode.width, fixedNode.height, fixedPort.side)
+                        val cursorWorld = draggingEndpoint.cursorWorld
+                        val ghostPath = if (draggingEndpoint.endpoint == EdgeEndpoint.Target) {
+                            EdgeRouter.Bezier.route(fixedWorld, cursorWorld, fixedPort.side, PortSide.Left)
+                        } else {
+                            EdgeRouter.Bezier.route(cursorWorld, fixedWorld, PortSide.Right, fixedPort.side)
+                        }
+                        drawEdgePath(sharedPath, decorationPath, ghostPath, state.viewport, EdgeEnd.None, EdgeEnd.None, isPending = true)
+                    }
+                }
             }
 
             // ── Pending connection bezier ─────────────────────────────────────
@@ -1018,6 +1074,41 @@ private fun DrawScope.drawAlignmentGuides(
             topLeft = androidx.compose.ui.geometry.Offset(bgLeft + pad, bgTop + pad),
         )
     }
+}
+
+/**
+ * Checks whether [worldPos] is within [tolerancePx] of either endpoint handle of [edgeId].
+ * Returns a pair of (edgeId, which endpoint was hit) or null.
+ * Only meaningful when the edge is selected (handles are only rendered/hittable then).
+ */
+private fun hitTestEdgeHandle(
+    worldPos: CoreOffset,
+    edgeId: com.yasincidem.blockcanvas.core.model.EdgeId,
+    state: BlockCanvasState,
+    tolerancePx: Float = 20f,
+): Pair<com.yasincidem.blockcanvas.core.model.EdgeId, EdgeEndpoint>? {
+    val edge = state.canvasState.edges[edgeId] ?: return null
+
+    val fromNode = state.canvasState.nodes[edge.from.node] ?: return null
+    val toNode   = state.canvasState.nodes[edge.to.node]   ?: return null
+    val fromPort = fromNode.ports.find { it.id == edge.from.port } ?: return null
+    val toPort   = toNode.ports.find { it.id == edge.to.port }     ?: return null
+
+    val fromPos  = state.nodePositions[fromNode.id] ?: fromNode.position
+    val toPos    = state.nodePositions[toNode.id]   ?: toNode.position
+    val fromWorld = computePortPosition(fromPos, fromNode.width, fromNode.height, fromPort.side)
+    val toWorld   = computePortPosition(toPos,   toNode.width,   toNode.height,   toPort.side)
+
+    val scaledTol = tolerancePx / state.viewport.zoom
+    val sqTol = scaledTol * scaledTol
+
+    val dxFrom = worldPos.x - fromWorld.x; val dyFrom = worldPos.y - fromWorld.y
+    if (dxFrom * dxFrom + dyFrom * dyFrom <= sqTol) return edgeId to EdgeEndpoint.Source
+
+    val dxTo = worldPos.x - toWorld.x; val dyTo = worldPos.y - toWorld.y
+    if (dxTo * dxTo + dyTo * dyTo <= sqTol) return edgeId to EdgeEndpoint.Target
+
+    return null
 }
 
 private fun hitTestEdges(

@@ -2,6 +2,7 @@ package com.yasincidem.blockcanvas.ui.state
 
 import androidx.compose.ui.graphics.Color
 import com.yasincidem.blockcanvas.core.geometry.Offset
+import com.yasincidem.blockcanvas.core.model.EdgeId
 
 /**
  * Defines how marquee selection interacts with the existing selection.
@@ -24,6 +25,9 @@ public data class MarqueeStyle(
     val borderDashPattern: FloatArray = floatArrayOf(5f, 5f)
 )
 
+/** Which endpoint of an edge is being dragged during a reconnect gesture. */
+public enum class EdgeEndpoint { Source, Target }
+
 /**
  * Represents the current high-level interaction state of the canvas.
  */
@@ -40,4 +44,14 @@ public sealed interface CanvasInteraction {
 
     /** User is panning the canvas manually (e.g. via Space + Drag). */
     public object Panning : CanvasInteraction
+
+    /**
+     * User is dragging one endpoint of a selected edge to reconnect it.
+     * The edge is NOT removed until the gesture resolves.
+     */
+    public data class DraggingEdgeEndpoint(
+        val edgeId: EdgeId,
+        val endpoint: EdgeEndpoint,
+        val cursorWorld: Offset,
+    ) : CanvasInteraction
 }

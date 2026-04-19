@@ -18,6 +18,7 @@ import com.yasincidem.blockcanvas.core.geometry.Viewport
 import com.yasincidem.blockcanvas.core.model.Edge
 import com.yasincidem.blockcanvas.core.model.EdgeId
 import com.yasincidem.blockcanvas.core.model.EndPoint
+import com.yasincidem.blockcanvas.core.rules.ConnectionError
 import com.yasincidem.blockcanvas.core.model.Node
 import com.yasincidem.blockcanvas.core.model.NodeId
 import com.yasincidem.blockcanvas.core.model.EdgeAnimation
@@ -364,6 +365,38 @@ public class BlockCanvasState(
         selectionState = selectionState.remove(id)
     }
 
+    /**
+     * Moves one endpoint of an existing edge to a new [EndPoint] in a single undoable step.
+     *
+     * Runs the [connectionValidator] against the modified edge set (without the old edge,
+     * with the proposed new edge). Returns `null` on success, or a [ConnectionError] if
+     * the validator rejects the change — in which case the canvas state is unchanged.
+     *
+     * @param id       The edge to reconnect.
+     * @param which    Which endpoint to move: [EdgeEndpoint.Source] or [EdgeEndpoint.Target].
+     * @param newEnd   The new endpoint (node + port) to attach to.
+     */
+    public fun reconnectEdge(id: EdgeId, which: EdgeEndpoint, newEnd: EndPoint): ConnectionError? {
+        val old = canvasState.edges[id] ?: return null
+
+        val newFrom = if (which == EdgeEndpoint.Source) newEnd else old.from
+        val newTo   = if (which == EdgeEndpoint.Target) newEnd else old.to
+
+        // Validate against the edge set *excluding* the edge being reconnected
+        val otherEdges = canvasState.edges.values.filter { it.id != id }
+        val portLookup: (EndPoint) -> com.yasincidem.blockcanvas.core.model.Port? = { ep ->
+            canvasState.nodes[ep.node]?.ports?.find { it.id == ep.port }
+        }
+        val error = connectionValidator.validate(newFrom, newTo, otherEdges, portLookup)
+        if (error != null) return error
+
+        val updated = old.copy(from = newFrom, to = newTo)
+        mutateCanvas { state ->
+            state.copy(edges = state.edges + (id to updated))
+        }
+        return null
+    }
+
     /** Deletes all currently selected nodes and edges in a single undoable step. */
     public fun deleteSelected() {
         val nodesToDelete = selectionState.selectedNodes.toSet()
@@ -389,6 +422,21 @@ public class BlockCanvasState(
     public fun clearSelection()            { selectionState = selectionState.clear() }
 
     // ── Marquee Selection ─────────────────────────────────────────────────────
+
+    internal fun startDraggingEdgeEndpoint(edgeId: EdgeId, endpoint: EdgeEndpoint, cursorWorld: Offset) {
+        interaction = CanvasInteraction.DraggingEdgeEndpoint(edgeId, endpoint, cursorWorld)
+    }
+
+    internal fun updateDraggingEdgeEndpoint(cursorWorld: Offset) {
+        val cur = interaction
+        if (cur is CanvasInteraction.DraggingEdgeEndpoint) {
+            interaction = cur.copy(cursorWorld = cursorWorld)
+        }
+    }
+
+    internal fun cancelDraggingEdgeEndpoint() {
+        interaction = CanvasInteraction.Idle
+    }
 
     internal fun startMarquee(start: Offset, mode: MarqueeMode) {
         interaction = CanvasInteraction.MarqueeSelecting(start, start, mode)
