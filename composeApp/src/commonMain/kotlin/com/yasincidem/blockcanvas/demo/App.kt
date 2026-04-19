@@ -37,6 +37,9 @@ import com.yasincidem.blockcanvas.ui.BlockCanvas
 import com.yasincidem.blockcanvas.ui.state.BlockCanvasState
 import com.yasincidem.blockcanvas.ui.state.GridConfig
 import com.yasincidem.blockcanvas.ui.state.GridStyle
+import com.yasincidem.blockcanvas.core.rules.CompositeConnectionValidator
+import com.yasincidem.blockcanvas.core.rules.DefaultConnectionValidator
+import com.yasincidem.blockcanvas.core.rules.MaxEdgesPerPortRule
 import com.yasincidem.blockcanvas.ui.state.LodLevel
 import com.yasincidem.blockcanvas.ui.state.rememberBlockCanvasState
 
@@ -54,7 +57,11 @@ fun App() {
                     style = GridStyle.Dots(spacing = 24f),
                     snapToGrid = true,
                     backgroundColor = Color(0xFF_0F0F1A),
-                )
+                ),
+                connectionValidator = CompositeConnectionValidator(
+                    DefaultConnectionValidator(),
+                    MaxEdgesPerPortRule(maxPerPort = 1),
+                ),
             )
 
             BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
