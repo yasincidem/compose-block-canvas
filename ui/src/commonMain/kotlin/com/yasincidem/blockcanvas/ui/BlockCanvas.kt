@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -112,6 +113,7 @@ public fun BlockCanvas(
     modifier: Modifier = Modifier,
     onConnectionAttempt: (from: EndPoint, to: EndPoint) -> Boolean = { _, _ -> true },
     alignmentGuideStyle: AlignmentGuideStyle = AlignmentGuideStyle.Default,
+    pinchToResizeEnabled: Boolean = false,
     nodeContent: @Composable (node: Node, isSelected: Boolean, scale: Float) -> Unit,
 ) {
     val density = LocalDensity.current
@@ -139,6 +141,7 @@ public fun BlockCanvas(
 
     Box(
         modifier = modifier
+            .clipToBounds()
             .onSizeChanged { canvasSize = it }
             .onKeyEvent { event ->
                 when {
@@ -319,7 +322,7 @@ public fun BlockCanvas(
                                 val change = dragEvent.changes.find { it.id == down.id } ?: break
 
                                 if (dragEvent.changes.size > 1) {
-                                    // Committing partial move so it doesn't jump back, but stopping drag logic
+                                    // Commit partial drag so node doesn't snap back.
                                     val finalPlacements = buildMap {
                                         state.selectionState.selectedNodes.forEach { id ->
                                             val pos = state.nodePositions[id]
@@ -328,7 +331,34 @@ public fun BlockCanvas(
                                     }
                                     state.commitNodePositions(finalPlacements)
                                     state.clearAlignmentResult()
-                                    break 
+
+                                    // Pinch-to-resize on this node if enabled.
+                                    val secondChange = dragEvent.changes.find { it.id != down.id && it.pressed }
+                                    if (pinchToResizeEnabled && secondChange != null) {
+                                        val startNode = state.canvasState.nodes[hit.nodeId]
+                                        if (startNode != null) {
+                                            val aspect = startNode.height / startNode.width.coerceAtLeast(1f)
+                                            var lastDist = (secondChange.position - change.position)
+                                                .getDistance().coerceAtLeast(1f)
+                                            change.consume(); secondChange.consume()
+                                            while (true) {
+                                                val ev2 = awaitPointerEvent()
+                                                val c1 = ev2.changes.find { it.id == down.id }
+                                                val c2 = ev2.changes.find { it.id == secondChange.id }
+                                                if (c1 == null || c2 == null || !c1.pressed || !c2.pressed) break
+                                                c1.consume(); c2.consume()
+                                                val dist = (c2.position - c1.position)
+                                                    .getDistance().coerceAtLeast(1f)
+                                                val scale = dist / lastDist
+                                                lastDist = dist
+                                                val cur = state.canvasState.nodes[hit.nodeId] ?: break
+                                                val newW = (cur.width * scale).coerceIn(60f, 1200f)
+                                                val newH = (newW * aspect).coerceIn(60f, 1200f)
+                                                state.resizeNode(hit.nodeId, newW, newH)
+                                            }
+                                        }
+                                    }
+                                    break
                                 }
 
                                 if (!change.pressed) {

@@ -17,7 +17,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,13 +46,16 @@ private val prettyJson = Json { prettyPrint = true; encodeDefaults = true; ignor
 
 @Composable
 fun SerializationScreen(onBack: () -> Unit) {
+    val isDark = isSystemInDarkTheme()
+    val canvasBg = if (isDark) Color(0xFF_0F0F1A) else Color(0xFF_EEEEF6)
     val canvasState = rememberBlockCanvasState(
         initialCanvasState = buildSerializationCanvas(),
         gridConfig = GridConfig(
             style = GridStyle.Dots(spacing = 24f),
-            backgroundColor = Color(0xFF_0F0F1A),
+            backgroundColor = canvasBg,
         ),
     )
+    SideEffect { canvasState.gridConfig = canvasState.gridConfig.copy(backgroundColor = canvasBg) }
 
     var exportedJson by remember { mutableStateOf("") }
     var importError by remember { mutableStateOf("") }

@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -59,13 +61,16 @@ private val relations = listOf(
 
 @Composable
 fun KnowledgeGraphScreen(onBack: () -> Unit) {
+    val isDark = isSystemInDarkTheme()
+    val canvasBg = if (isDark) Color(0xFF_0D0D16) else Color(0xFF_F0F0F8)
     val canvasState = rememberBlockCanvasState(
         initialCanvasState = buildKnowledgeGraph(),
         gridConfig = GridConfig(
             style = GridStyle.None,
-            backgroundColor = Color(0xFF_0D0D16),
+            backgroundColor = canvasBg,
         ),
     )
+    SideEffect { canvasState.gridConfig = canvasState.gridConfig.copy(backgroundColor = canvasBg) }
 
     ShowcaseScaffold(
         title = "Knowledge Graph",

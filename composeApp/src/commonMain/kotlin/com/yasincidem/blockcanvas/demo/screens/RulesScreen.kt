@@ -16,8 +16,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -52,14 +54,17 @@ fun RulesScreen(onBack: () -> Unit) {
         }
     }
 
+    val isDark = isSystemInDarkTheme()
+    val canvasBg = if (isDark) Color(0xFF_0F0F1A) else Color(0xFF_EEEEF6)
     val canvasState = rememberBlockCanvasState(
         initialCanvasState = buildRulesCanvas(),
         gridConfig = GridConfig(
             style = GridStyle.Dots(spacing = 28f),
-            backgroundColor = Color(0xFF_0F0F1A),
+            backgroundColor = canvasBg,
         ),
         connectionValidator = DefaultConnectionValidator(),
     )
+    SideEffect { canvasState.gridConfig = canvasState.gridConfig.copy(backgroundColor = canvasBg) }
 
     // Swap the validator when the chip selection changes
     LaunchedEffect(maxEdges) {

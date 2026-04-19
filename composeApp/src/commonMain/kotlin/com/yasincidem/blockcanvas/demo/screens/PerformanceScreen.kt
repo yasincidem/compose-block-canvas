@@ -12,8 +12,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -43,13 +45,16 @@ import kotlin.math.sqrt
 
 @Composable
 fun PerformanceScreen(onBack: () -> Unit) {
+    val isDark = isSystemInDarkTheme()
+    val canvasBg = if (isDark) Color(0xFF_080810) else Color(0xFF_F0F0F8)
     var nodeCount by remember { mutableStateOf(0) }
     val canvasState = rememberBlockCanvasState(
         gridConfig = GridConfig(
             style = GridStyle.None,
-            backgroundColor = Color(0xFF_080810),
+            backgroundColor = canvasBg,
         ),
     )
+    SideEffect { canvasState.gridConfig = canvasState.gridConfig.copy(backgroundColor = canvasBg) }
 
     // FPS sampler
     var fps by remember { mutableLongStateOf(0L) }

@@ -13,7 +13,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -79,14 +81,17 @@ private class TypedPortValidator : ConnectionValidator {
 
 @Composable
 fun WorkflowScreen(onBack: () -> Unit) {
+    val isDark = isSystemInDarkTheme()
+    val canvasBg = if (isDark) Color(0xFF_0A0A14) else Color(0xFF_EEEEF6)
     val canvasState = rememberBlockCanvasState(
         initialCanvasState = buildWorkflowCanvas(),
         gridConfig = GridConfig(
             style = GridStyle.Lines(spacing = 32f),
-            backgroundColor = Color(0xFF_0A0A14),
+            backgroundColor = canvasBg,
         ),
         connectionValidator = TypedPortValidator(),
     )
+    SideEffect { canvasState.gridConfig = canvasState.gridConfig.copy(backgroundColor = canvasBg) }
 
     ShowcaseScaffold(
         title = "Workflow — AI Pipeline",

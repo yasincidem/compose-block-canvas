@@ -356,6 +356,10 @@ public class BlockCanvasState(
         selectionState = selectionState.remove(id)
     }
 
+    public fun resizeNode(id: NodeId, width: Float, height: Float) {
+        mutateCanvas { it.resizeNode(id, width, height) }
+    }
+
     public fun addEdge(edge: Edge) {
         mutateCanvas { it.addEdge(edge) }
     }
@@ -462,7 +466,7 @@ public class BlockCanvasState(
     }
 
     private fun resolveMarqueeSelection(marquee: CanvasInteraction.MarqueeSelecting) {
-        val rect = com.yasincidem.blockcanvas.core.geometry.Rect.fromPoints(marquee.start, marquee.current)
+        val rect = Rect.fromPoints(marquee.start, marquee.current)
         val hits = canvasState.nodes.values.filter { it.boundingBox.intersects(rect) }.map { it.id }.toSet()
 
         selectionState = when (marquee.mode) {

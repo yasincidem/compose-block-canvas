@@ -17,7 +17,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,18 +52,21 @@ private val PORT_DOT_DP = 12.dp
 fun BasicsScreen(onBack: () -> Unit) {
     val density = LocalDensity.current.density
     val initialCanvas = remember(density) { buildBasicsCanvas(density) }
+    val isDark = isSystemInDarkTheme()
+    val canvasBg = if (isDark) Color(0xFF_0F0F1A) else Color(0xFF_EEEEF6)
     val canvasState = rememberBlockCanvasState(
         initialCanvasState = initialCanvas,
         gridConfig = GridConfig(
             style = GridStyle.Dots(spacing = 24f),
             snapToGrid = true,
-            backgroundColor = Color(0xFF_0F0F1A),
+            backgroundColor = canvasBg,
         ),
         connectionValidator = CompositeConnectionValidator(
             DefaultConnectionValidator(),
             MaxEdgesPerPortRule(maxPerPort = 1),
         ),
     )
+    SideEffect { canvasState.gridConfig = canvasState.gridConfig.copy(backgroundColor = canvasBg) }
 
     ShowcaseScaffold(
         title = "Basics",
@@ -85,6 +90,7 @@ fun BasicsScreen(onBack: () -> Unit) {
             BlockCanvas(
                 state = canvasState,
                 modifier = Modifier.fillMaxSize(),
+                pinchToResizeEnabled = true,
                 nodeContent = { node, isSelected, scale ->
                     BasicNode(node = node, isSelected = isSelected, scale = scale)
                 },

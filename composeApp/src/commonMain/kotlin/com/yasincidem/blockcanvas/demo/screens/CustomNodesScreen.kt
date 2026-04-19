@@ -25,7 +25,9 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -57,14 +59,17 @@ import com.yasincidem.blockcanvas.ui.state.rememberBlockCanvasState
 
 @Composable
 fun CustomNodesScreen(onBack: () -> Unit) {
+    val isDark = isSystemInDarkTheme()
+    val canvasBg = if (isDark) Color(0xFF_12121C) else Color(0xFF_EBEBF4)
     val canvasState = rememberBlockCanvasState(
         initialCanvasState = buildCustomNodesCanvas(),
         gridConfig = GridConfig(
             style = GridStyle.Lines(),
-            backgroundColor = Color(0xFF_12121C),
+            backgroundColor = canvasBg,
         ),
         connectionValidator = DefaultConnectionValidator(),
     )
+    SideEffect { canvasState.gridConfig = canvasState.gridConfig.copy(backgroundColor = canvasBg) }
 
     ShowcaseScaffold(
         title = "Custom Nodes",

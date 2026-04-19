@@ -34,6 +34,14 @@ public data class CanvasState(
     }
 
     /**
+     * Resizes a node. Returns this state unchanged if [id] is not found.
+     */
+    public fun resizeNode(id: NodeId, width: Float, height: Float): CanvasState {
+        val node = nodes[id] ?: return this
+        return copy(nodes = nodes + (id to node.copy(width = width, height = height)))
+    }
+
+    /**
      * Removes a node by ID.
      * Also automatically removes any edges attached to this node.
      */
