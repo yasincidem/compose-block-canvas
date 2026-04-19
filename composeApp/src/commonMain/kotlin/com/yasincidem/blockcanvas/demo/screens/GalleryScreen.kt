@@ -1,19 +1,22 @@
 package com.yasincidem.blockcanvas.demo.screens
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -45,6 +48,8 @@ private val entries = listOf(
     ShowcaseEntry(Destination.Performance,    "Performance",        "100 / 500 / 1000 node stress test with FPS meter",  "🚀"),
 )
 
+private val entryRows = entries.chunked(2)
+
 @Composable
 fun GalleryScreen(onNavigate: (Destination) -> Unit) {
     Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.navigationBars)) {
@@ -55,34 +60,58 @@ fun GalleryScreen(onNavigate: (Destination) -> Unit) {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
+        LazyColumn(
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
             modifier = Modifier.fillMaxSize(),
         ) {
-            items(entries) { entry ->
-                ShowcaseCard(entry = entry, onClick = { onNavigate(entry.destination) })
+            items(entryRows) { rowEntries ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(IntrinsicSize.Min),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    rowEntries.forEach { entry ->
+                        ShowcaseCard(
+                            entry = entry,
+                            onClick = { onNavigate(entry.destination) },
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight(),
+                        )
+                    }
+
+                    if (rowEntries.size == 1) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun ShowcaseCard(entry: ShowcaseEntry, onClick: () -> Unit) {
+private fun ShowcaseCard(
+    entry: ShowcaseEntry,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val shape = RoundedCornerShape(12.dp)
+
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
+        onClick = onClick,
+        modifier = modifier,
+        shape = shape,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier
+                .fillMaxHeight()
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Text(
