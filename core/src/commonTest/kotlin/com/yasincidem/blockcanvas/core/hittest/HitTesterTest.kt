@@ -8,6 +8,7 @@ import com.yasincidem.blockcanvas.core.model.PortId
 import com.yasincidem.blockcanvas.core.model.PortSide
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 
 class HitTesterTest {
 
@@ -129,5 +130,46 @@ class HitTesterTest {
         // Left port at (0, 40), which is ON the included left edge of the rect
         assertEquals(HitResult.Port(NodeId("n1"), PortId("p")),
             tester.hitTest(Offset(0f, 40f), listOf(n), portTolerance = 1f))
+    }
+
+    // ── positionOverrides ─────────────────────────────────────────────────────
+
+    @Test
+    fun `positionOverride shifts node body hit zone`() {
+        // Node originally at (0,0); override moves it to (200,200)
+        val n = node("n1", 0f, 0f, 100f, 80f)
+        val overrides = mapOf(NodeId("n1") to Offset(200f, 200f))
+
+        // Old position should miss
+        assertEquals(HitResult.Empty,
+            tester.hitTest(Offset(50f, 40f), listOf(n), positionOverrides = overrides))
+
+        // New position should hit
+        assertEquals(HitResult.Node(NodeId("n1")),
+            tester.hitTest(Offset(250f, 240f), listOf(n), positionOverrides = overrides))
+    }
+
+    @Test
+    fun `positionOverride shifts port hit zone`() {
+        val n = node("n1", 0f, 0f, 100f, 80f, port("r", PortSide.Right))
+        val overrides = mapOf(NodeId("n1") to Offset(200f, 200f))
+
+        // Right port with override: (200+100, 200+40) = (300, 240)
+        assertEquals(HitResult.Port(NodeId("n1"), PortId("r")),
+            tester.hitTest(Offset(300f, 240f), listOf(n),
+                portTolerance = 1f, positionOverrides = overrides))
+
+        // Old port position should miss
+        assertNotEquals(HitResult.Port(NodeId("n1"), PortId("r")),
+            tester.hitTest(Offset(100f, 40f), listOf(n),
+                portTolerance = 1f, positionOverrides = overrides))
+    }
+
+    @Test
+    fun `hitTest without overrides uses node position as before`() {
+        val n = node("n1", 50f, 50f, 100f, 80f, port("r", PortSide.Right))
+        // Right port at (150, 90)
+        assertEquals(HitResult.Port(NodeId("n1"), PortId("r")),
+            tester.hitTest(Offset(150f, 90f), listOf(n), portTolerance = 1f))
     }
 }

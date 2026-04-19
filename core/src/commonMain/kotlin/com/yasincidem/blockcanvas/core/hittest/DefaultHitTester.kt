@@ -3,6 +3,7 @@ package com.yasincidem.blockcanvas.core.hittest
 import com.yasincidem.blockcanvas.core.geometry.Offset
 import com.yasincidem.blockcanvas.core.geometry.Rect
 import com.yasincidem.blockcanvas.core.model.Node
+import com.yasincidem.blockcanvas.core.model.NodeId
 import com.yasincidem.blockcanvas.core.model.computePortPosition
 
 /**
@@ -10,9 +11,10 @@ import com.yasincidem.blockcanvas.core.model.computePortPosition
  *
  * Pass 1 — ports: for each node, computes each port's world position via
  * [computePortPosition] and returns the first port within [portTolerance].
+ * Live drag positions in [positionOverrides] are used instead of [Node.position]
+ * so that mid-drag state is reflected correctly.
  *
- * Pass 2 — nodes: returns the first node whose bounding rect contains [point]
- * (half-open: left/top inclusive, right/bottom exclusive).
+ * Pass 2 — nodes: returns the first node whose bounding rect contains [point].
  *
  * Pass 3 — empty.
  */
@@ -22,12 +24,14 @@ public class DefaultHitTester : HitTester {
         point: Offset,
         nodes: Collection<Node>,
         portTolerance: Float,
+        positionOverrides: Map<NodeId, Offset>,
     ): HitResult {
         // Pass 1 — ports
         for (node in nodes) {
+            val pos = positionOverrides[node.id] ?: node.position
             for (port in node.ports) {
-                val pos = computePortPosition(node, port)
-                if (pos.distanceTo(point) <= portTolerance) {
+                val portPos = computePortPosition(pos, node.width, node.height, port.side)
+                if (portPos.distanceTo(point) <= portTolerance) {
                     return HitResult.Port(node.id, port.id)
                 }
             }
@@ -35,11 +39,12 @@ public class DefaultHitTester : HitTester {
 
         // Pass 2 — nodes
         for (node in nodes) {
+            val pos = positionOverrides[node.id] ?: node.position
             val rect = Rect(
-                left   = node.position.x,
-                top    = node.position.y,
-                right  = node.position.x + node.width,
-                bottom = node.position.y + node.height,
+                left   = pos.x,
+                top    = pos.y,
+                right  = pos.x + node.width,
+                bottom = pos.y + node.height,
             )
             if (rect.contains(point)) return HitResult.Node(node.id)
         }
@@ -48,6 +53,6 @@ public class DefaultHitTester : HitTester {
     }
 
     public companion object {
-        public const val DEFAULT_PORT_TOLERANCE: Float = 16f
+        public const val DEFAULT_PORT_TOLERANCE: Float = 24f
     }
 }

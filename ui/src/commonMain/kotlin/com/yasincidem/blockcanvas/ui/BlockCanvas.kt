@@ -193,7 +193,7 @@ public fun BlockCanvas(
                     }
 
                     // 2. Core Hit Testing for Ports and Nodes
-                    when (val hit = hitTester.hitTest(worldPos, state.canvasState.nodes.values)) {
+                    when (val hit = hitTester.hitTest(worldPos, state.canvasState.nodes.values, positionOverrides = state.nodePositions)) {
                         is HitResult.Port -> {
                             down.consume()
                             val clickedEndpoint = EndPoint(hit.nodeId, hit.portId)
@@ -999,7 +999,7 @@ private fun DrawScope.drawAlignmentGuides(
 private fun hitTestEdges(
     worldPos: CoreOffset,
     state: BlockCanvasState,
-    tolerancePx: Float = 10f
+    tolerancePx: Float = 16f,
 ): EdgeId? {
     val scaledTolerance = tolerancePx / state.viewport.zoom
     val squaredTolerance = scaledTolerance * scaledTolerance
@@ -1023,8 +1023,8 @@ private fun hitTestEdges(
             is EdgePath.Bezier -> {
                 val p1 = edgePath.control1
                 val p2 = edgePath.control2
-                for (i in 0..20) {
-                    val t = i / 20f
+                for (i in 0..40) {
+                    val t = i / 40f
                     val u = 1 - t
                     val u2 = u * u; val u3 = u2 * u
                     val t2 = t * t; val t3 = t2 * t
