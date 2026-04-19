@@ -2,6 +2,7 @@ package com.yasincidem.blockcanvas.demo.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -11,7 +12,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -25,9 +25,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -39,7 +37,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
@@ -64,18 +61,28 @@ fun CustomNodesScreen(onBack: () -> Unit) {
     val canvasState = rememberBlockCanvasState(
         initialCanvasState = buildCustomNodesCanvas(),
         gridConfig = GridConfig(
-            style = GridStyle.Lines(),
+            style = GridStyle.Dots(),
             backgroundColor = canvasBg,
         ),
         connectionValidator = DefaultConnectionValidator(),
     )
-    SideEffect { canvasState.gridConfig = canvasState.gridConfig.copy(backgroundColor = canvasBg) }
 
     ShowcaseScaffold(
         title = "Custom Nodes",
         description = "Every node is rendered via the nodeContent slot — the library imposes no constraints on node UI.",
         onBack = onBack,
     ) {
+    androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize()) {
+        val density = androidx.compose.ui.platform.LocalDensity.current
+        val widthPx = with(density) { maxWidth.toPx() }
+        val heightPx = with(density) { maxHeight.toPx() }
+
+        androidx.compose.runtime.LaunchedEffect(widthPx, heightPx) {
+            if (widthPx > 0 && heightPx > 0) {
+                canvasState.fitToNodes(widthPx, heightPx, padding = 100f)
+            }
+        }
+
         BlockCanvas(
             state = canvasState,
             modifier = Modifier.fillMaxSize(),
@@ -83,6 +90,7 @@ fun CustomNodesScreen(onBack: () -> Unit) {
                 CustomNodeContent(node = node, isSelected = isSelected)
             },
         )
+    }
     }
 }
 
@@ -130,7 +138,7 @@ private fun ImageNodeContent(node: Node, borderColor: Color) {
         AsyncImage(
             model = "https://picsum.photos/seed/blockcanvas/400/200",
             contentDescription = "Image node",
-            modifier = Modifier.fillMaxWidth().height(120.dp),
+            modifier = Modifier.fillMaxWidth().height(260.dp),
             contentScale = ContentScale.Crop,
         )
         Box(
@@ -192,7 +200,7 @@ private fun FormNodeContent(node: Node, borderColor: Color) {
                 value = text,
                 onValueChange = { text = it },
                 placeholder = { Text("Type here…", fontSize = 11.sp) },
-                modifier = Modifier.fillMaxWidth().height(44.dp),
+                modifier = Modifier.fillMaxWidth().height(56.dp),
                 singleLine = true,
                 textStyle = MaterialTheme.typography.bodySmall,
             )
@@ -242,38 +250,38 @@ private fun RichCardNodeContent(node: Node, borderColor: Color) {
 }
 
 private fun buildCustomNodesCanvas(): CanvasState {
-    val w = 220f
-    val h = 160f
-    val gap = 60f
+    val w = 500f
+    val h = 400f
+    val gap = 200f
 
     return buildCanvasState {
         node("text") {
-            at(x = 40f, y = 60f)
-            size(w, 80f)
+            at(x = 100f, y = 200f)
+            size(w, 200f)
             port("right", PortSide.Right)
             port("left", PortSide.Left)
         }
         node("image") {
-            at(x = 40f + w + gap, y = 20f)
-            size(w + 40f, h + 20f)
+            at(x = 100f + w + gap, y = 100f)
+            size(w + 100f, h + 100f)
             port("right", PortSide.Right)
             port("left", PortSide.Left)
             port("bottom", PortSide.Bottom)
         }
         node("longtext") {
-            at(x = 40f + (w + gap) * 2, y = 40f)
+            at(x = 100f + (w + gap) * 2, y = 150f)
             size(w, h)
             port("left", PortSide.Left)
             port("right", PortSide.Right)
         }
         node("form") {
-            at(x = 40f, y = 220f)
-            size(w + 20f, h + 60f)
+            at(x = 100f, y = 600f)
+            size(w + 60f, h + 150f)
             port("right", PortSide.Right)
             port("top", PortSide.Top)
         }
         node("richcard") {
-            at(x = 40f + w + gap, y = 260f)
+            at(x = 100f + w + gap, y = 750f)
             size(w, h)
             port("left", PortSide.Left)
             port("top", PortSide.Top)

@@ -2,7 +2,7 @@ package com.yasincidem.blockcanvas.demo.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,14 +17,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -39,7 +36,6 @@ import com.yasincidem.blockcanvas.ui.BlockCanvas
 import com.yasincidem.blockcanvas.ui.state.GridConfig
 import com.yasincidem.blockcanvas.ui.state.GridStyle
 import com.yasincidem.blockcanvas.ui.state.rememberBlockCanvasState
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 private val prettyJson = Json { prettyPrint = true; encodeDefaults = true; ignoreUnknownKeys = true }
@@ -55,7 +51,6 @@ fun SerializationScreen(onBack: () -> Unit) {
             backgroundColor = canvasBg,
         ),
     )
-    SideEffect { canvasState.gridConfig = canvasState.gridConfig.copy(backgroundColor = canvasBg) }
 
     var exportedJson by remember { mutableStateOf("") }
     var importError by remember { mutableStateOf("") }

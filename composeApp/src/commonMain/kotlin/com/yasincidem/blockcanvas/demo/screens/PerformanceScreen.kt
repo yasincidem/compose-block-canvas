@@ -2,23 +2,21 @@ package com.yasincidem.blockcanvas.demo.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameMillis
@@ -35,7 +33,6 @@ import com.yasincidem.blockcanvas.core.model.NodeId
 import com.yasincidem.blockcanvas.core.model.Port
 import com.yasincidem.blockcanvas.core.model.PortId
 import com.yasincidem.blockcanvas.core.model.PortSide
-import com.yasincidem.blockcanvas.core.state.CanvasState
 import com.yasincidem.blockcanvas.demo.common.ShowcaseScaffold
 import com.yasincidem.blockcanvas.ui.BlockCanvas
 import com.yasincidem.blockcanvas.ui.state.GridConfig
@@ -47,14 +44,13 @@ import kotlin.math.sqrt
 fun PerformanceScreen(onBack: () -> Unit) {
     val isDark = isSystemInDarkTheme()
     val canvasBg = if (isDark) Color(0xFF_080810) else Color(0xFF_F0F0F8)
-    var nodeCount by remember { mutableStateOf(0) }
+    var nodeCount by remember { mutableIntStateOf(0) }
     val canvasState = rememberBlockCanvasState(
         gridConfig = GridConfig(
             style = GridStyle.None,
             backgroundColor = canvasBg,
         ),
     )
-    SideEffect { canvasState.gridConfig = canvasState.gridConfig.copy(backgroundColor = canvasBg) }
 
     // FPS sampler
     var fps by remember { mutableLongStateOf(0L) }

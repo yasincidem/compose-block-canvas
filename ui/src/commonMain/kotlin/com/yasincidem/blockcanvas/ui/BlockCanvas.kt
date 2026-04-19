@@ -334,7 +334,20 @@ public fun BlockCanvas(
 
                                     // Pinch-to-resize on this node if enabled.
                                     val secondChange = dragEvent.changes.find { it.id != down.id && it.pressed }
-                                    if (pinchToResizeEnabled && secondChange != null) {
+                                    var secondIsOnNode = false
+                                    if (secondChange != null) {
+                                        val startNode = state.canvasState.nodes[hit.nodeId]
+                                        val pos = state.nodePositions[hit.nodeId] ?: startNode?.position
+                                        if (startNode != null && pos != null) {
+                                            val p = state.viewport.screenToWorld(secondChange.position.toCore())
+                                            // Add 48f tolerance (scaled to world space) for fat-finger pinch gestures
+                                            val tol = 48f / state.viewport.zoom.coerceAtLeast(0.1f)
+                                            secondIsOnNode = p.x >= pos.x - tol && p.x <= pos.x + startNode.width + tol &&
+                                                             p.y >= pos.y - tol && p.y <= pos.y + startNode.height + tol
+                                        }
+                                    }
+
+                                    if (pinchToResizeEnabled && secondChange != null && secondIsOnNode) {
                                         val startNode = state.canvasState.nodes[hit.nodeId]
                                         if (startNode != null) {
                                             val aspect = startNode.height / startNode.width.coerceAtLeast(1f)
