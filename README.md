@@ -167,4 +167,4 @@ The project is being built with a few constraints in mind:
 - deterministic interactions that can be tested
 - API ergonomics over feature count
 
-If you are exploring the project today, the best place to start is the demo app and the examples under [`composeApp`](/Users/yasincidem/AndroidStudioProjects/compose-block-canvas/composeApp).
+If you are exploring the project today, the best place to start is the demo app and the examples under [`composeApp`](./composeApp).
