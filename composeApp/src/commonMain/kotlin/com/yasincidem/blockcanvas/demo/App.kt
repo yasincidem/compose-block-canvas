@@ -95,41 +95,27 @@ private fun DemoNode(node: Node, isSelected: Boolean, scale: Float) {
     ) {
         if (lod >= LodLevel.MEDIUM) {
             Text(text = node.id.value, color = Color.White)
-            PortDots()
+            node.ports.forEach { port -> PortDot(port.side) }
         }
     }
 }
 
 @Composable
-private fun BoxScope.PortDots() {
+private fun BoxScope.PortDot(side: PortSide) {
+    val alignment = when (side) {
+        PortSide.Top    -> Alignment.TopCenter
+        PortSide.Right  -> Alignment.CenterEnd
+        PortSide.Bottom -> Alignment.BottomCenter
+        PortSide.Left   -> Alignment.CenterStart
+    }
+    val modifier = when (side) {
+        PortSide.Top    -> Modifier.align(alignment).offset(y = -(PORT_DOT_DP / 2))
+        PortSide.Right  -> Modifier.align(alignment).offset(x = PORT_DOT_DP / 2)
+        PortSide.Bottom -> Modifier.align(alignment).offset(y = PORT_DOT_DP / 2)
+        PortSide.Left   -> Modifier.align(alignment).offset(x = -(PORT_DOT_DP / 2))
+    }
     Box(
-        Modifier
-            .align(Alignment.TopCenter)
-            .offset(y = -(PORT_DOT_DP / 2))
-            .size(PORT_DOT_DP)
-            .background(Color(0xFF_5B8DEF), CircleShape)
-            .border(1.5.dp, Color.White, CircleShape)
-    )
-    Box(
-        Modifier
-            .align(Alignment.CenterEnd)
-            .offset(x = PORT_DOT_DP / 2)
-            .size(PORT_DOT_DP)
-            .background(Color(0xFF_5B8DEF), CircleShape)
-            .border(1.5.dp, Color.White, CircleShape)
-    )
-    Box(
-        Modifier
-            .align(Alignment.BottomCenter)
-            .offset(y = PORT_DOT_DP / 2)
-            .size(PORT_DOT_DP)
-            .background(Color(0xFF_5B8DEF), CircleShape)
-            .border(1.5.dp, Color.White, CircleShape)
-    )
-    Box(
-        Modifier
-            .align(Alignment.CenterStart)
-            .offset(x = -(PORT_DOT_DP / 2))
+        modifier
             .size(PORT_DOT_DP)
             .background(Color(0xFF_5B8DEF), CircleShape)
             .border(1.5.dp, Color.White, CircleShape)
@@ -247,23 +233,33 @@ private fun buildDemoCanvas(density: Float): CanvasState {
         node("node_1") {
             at(x = gap, y = 160f * density)
             size(nodeW, nodeH)
+            port("top", PortSide.Top)
             port("right", PortSide.Right)
+            port("bottom", PortSide.Bottom)
+            port("left", PortSide.Left)
         }
         node("node_2") {
             rightOf("node_1", gap = gap)
             size(nodeW, nodeH)
-            port("left", PortSide.Left)
+            port("top", PortSide.Top)
             port("right", PortSide.Right)
+            port("bottom", PortSide.Bottom)
+            port("left", PortSide.Left)
         }
         node("node_3") {
             rightOf("node_2", gap = gap)
             size(nodeW, nodeH)
-            port("left", PortSide.Left)
+            port("top", PortSide.Top)
             port("right", PortSide.Right)
+            port("bottom", PortSide.Bottom)
+            port("left", PortSide.Left)
         }
         node("node_4") {
             rightOf("node_3", gap = gap)
             size(nodeW, nodeH)
+            port("top", PortSide.Top)
+            port("right", PortSide.Right)
+            port("bottom", PortSide.Bottom)
             port("left", PortSide.Left)
         }
 

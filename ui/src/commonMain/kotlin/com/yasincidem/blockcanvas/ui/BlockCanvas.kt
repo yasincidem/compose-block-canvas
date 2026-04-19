@@ -20,6 +20,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.Modifier
@@ -121,6 +123,7 @@ public fun BlockCanvas(
     // Tap threshold: pointer moved less than this → treat as click, not drag
     val tapThresholdPx = 8f
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
+    val focusRequester = remember { FocusRequester() }
 
     // Single shared time source for all edge animations — 0..1 cycling every second.
     // Captured as State<Float> (not `by` delegation) so .value is read inside draw
@@ -154,6 +157,7 @@ public fun BlockCanvas(
                     else -> false
                 }
             }
+            .focusRequester(focusRequester)
             .focusable()
             // Pan / zoom — outer modifier, processed SECOND in Main pass.
             // detectTransformGestures checks `canceled = event.changes.any { it.isConsumed }` and
@@ -179,6 +183,9 @@ public fun BlockCanvas(
                     val down = event.changes.first()
                     val isShiftPressed = event.keyboardModifiers.isShiftPressed
                     val worldPos = state.viewport.screenToWorld(down.position.toCore())
+
+                    // Grab keyboard focus on every tap so Delete/Backspace work immediately.
+                    focusRequester.requestFocus()
 
                     // 1. Edge Hit Testing (drawn in UI so hit-tested here)
                     val edgeHit = hitTestEdges(worldPos, state)
