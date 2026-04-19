@@ -24,4 +24,18 @@ public sealed interface ConnectionError {
      * An edge with the same directed `(from, to)` pair already exists.
      */
     public data class DuplicateEdge(public val existingEdgeId: EdgeId) : ConnectionError
+
+    /**
+     * The port already has [currentCount] edges and the rule allows at most [maxAllowed].
+     */
+    public data class MaxEdgesExceeded(
+        public val endpoint: EndPoint,
+        public val currentCount: Int,
+        public val maxAllowed: Int,
+    ) : ConnectionError
+
+    /**
+     * Adding this edge would create a cycle in the graph.
+     */
+    public data class CycleDetected(public val endpoint: EndPoint) : ConnectionError
 }

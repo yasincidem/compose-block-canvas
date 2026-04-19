@@ -212,20 +212,23 @@ public fun BlockCanvas(
                                 return@awaitEachGesture
                             }
 
-                            // Reconnection: rip off an existing edge from this port
+                            // Find an edge to potentially detach — but don't remove it yet.
+                            // Detach only happens once the user actually drags past the threshold.
                             val edgeToDetach = state.canvasState.edges.values.find { it.to == clickedEndpoint }
                                 ?: state.canvasState.edges.values.find { it.from == clickedEndpoint }
 
                             val sourceEnd = if (edgeToDetach != null) {
-                                state.removeEdge(edgeToDetach.id)
+                                // Pending source = the other end of the existing edge
                                 if (edgeToDetach.to == clickedEndpoint) edgeToDetach.from else edgeToDetach.to
                             } else {
                                 clickedEndpoint
                             }
 
+                            // Show pending line from the source immediately so it feels responsive.
                             state.startPendingConnection(sourceEnd, worldPos, com.yasincidem.blockcanvas.ui.state.ConnectionMode.Drag)
 
                             var totalMovePx = 0f
+                            var detached = false
                             var upHit: HitResult = HitResult.Empty
                             while (true) {
                                 val ev = awaitPointerEvent()
@@ -236,21 +239,29 @@ public fun BlockCanvas(
                                 val d = change.position - change.previousPosition
                                 totalMovePx += kotlin.math.sqrt(d.x * d.x + d.y * d.y)
 
-                                if (ev.changes.size > 1) break // Abort Connection drag for Multi-touch zoom
+                                // Detach the existing edge only once the drag is confirmed real.
+                                if (!detached && edgeToDetach != null && totalMovePx >= tapThresholdPx) {
+                                    state.removeEdge(edgeToDetach.id)
+                                    detached = true
+                                }
+
+                                if (ev.changes.size > 1) break // Abort for multi-touch zoom
 
                                 if (!change.pressed) {
-                                    upHit = hitTester.hitTest(curr, state.canvasState.nodes.values)
+                                    upHit = hitTester.hitTest(curr, state.canvasState.nodes.values,
+                                        positionOverrides = state.nodePositions)
                                     break
                                 }
                             }
 
                             when {
-                                // Released on a port → commit
+                                // Released on a port → commit (detach already happened if needed)
                                 upHit is HitResult.Port -> {
+                                    if (edgeToDetach != null && !detached) state.removeEdge(edgeToDetach.id)
                                     val to = EndPoint(upHit.nodeId, upHit.portId)
                                     state.tryCommitConnection(to, onConnectionAttemptState)
                                 }
-                                // Quick tap (little movement) → switch to click-click mode
+                                // Quick tap (little movement) → switch to click-click mode, no detach
                                 totalMovePx < tapThresholdPx -> {
                                     state.startPendingConnection(
                                         sourceEnd,
@@ -258,8 +269,10 @@ public fun BlockCanvas(
                                         com.yasincidem.blockcanvas.ui.state.ConnectionMode.Click,
                                     )
                                 }
-                                // Dragged but released on empty → cancel
-                                else -> state.clearPendingConnection()
+                                // Dragged to empty space → cancel, restore edge if not yet detached
+                                else -> {
+                                    state.clearPendingConnection()
+                                }
                             }
                         }
 
@@ -590,6 +603,41 @@ public fun BlockCanvas(
             }
         }
 
+        // Node layer — viewport applied via graphicsLayer (no per-node gesture handling needed).
+        Box(
+            modifier = Modifier.graphicsLayer {
+                translationX = state.viewport.pan.x
+                translationY = state.viewport.pan.y
+                scaleX = state.viewport.zoom
+                scaleY = state.viewport.zoom
+                transformOrigin = TransformOrigin(0f, 0f)
+            }
+        ) {
+            state.canvasState.nodes.values.forEach { node ->
+                Box(
+                    modifier = Modifier
+                        .offset {
+                            // Read from nodePositions (layout phase) so drag updates
+                            // only re-layout this node, not recompose BlockCanvas.
+                            val pos = state.nodePositions[node.id] ?: node.position
+                            IntOffset(
+                                x = pos.x.roundToInt(),
+                                y = pos.y.roundToInt(),
+                            )
+                        }
+                        // Size the container in dp so it matches the pixel world-space
+                        // dimensions: visual px = node.width, so dp = px / density.
+                        .size(
+                            width  = with(density) { node.width.toDp() },
+                            height = with(density) { node.height.toDp() },
+                        )
+                ) {
+                    val isSelected = state.selectionState.isSelected(node.id)
+                    nodeContent(node, isSelected, state.viewport.zoom)
+                }
+            }
+        }
+
         // Edge + pending + port highlights + alignment guides — one Canvas so all
         // dynamic state (nodePositions, pendingConnection, alignmentResult, animTime)
         // is read in the draw phase only. Zero BlockCanvas recompositions during drag.
@@ -700,40 +748,6 @@ public fun BlockCanvas(
             }
         }
 
-        // Node layer — viewport applied via graphicsLayer (no per-node gesture handling needed).
-        Box(
-            modifier = Modifier.graphicsLayer {
-                translationX = state.viewport.pan.x
-                translationY = state.viewport.pan.y
-                scaleX = state.viewport.zoom
-                scaleY = state.viewport.zoom
-                transformOrigin = TransformOrigin(0f, 0f)
-            }
-        ) {
-            state.canvasState.nodes.values.forEach { node ->
-                Box(
-                    modifier = Modifier
-                        .offset {
-                            // Read from nodePositions (layout phase) so drag updates
-                            // only re-layout this node, not recompose BlockCanvas.
-                            val pos = state.nodePositions[node.id] ?: node.position
-                            IntOffset(
-                                x = pos.x.roundToInt(),
-                                y = pos.y.roundToInt(),
-                            )
-                        }
-                        // Size the container in dp so it matches the pixel world-space
-                        // dimensions: visual px = node.width, so dp = px / density.
-                        .size(
-                            width  = with(density) { node.width.toDp() },
-                            height = with(density) { node.height.toDp() },
-                        )
-                ) {
-                    val isSelected = state.selectionState.isSelected(node.id)
-                    nodeContent(node, isSelected, state.viewport.zoom)
-                }
-            }
-        }
     }
 }
 
