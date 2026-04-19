@@ -255,21 +255,24 @@ public fun BlockCanvas(
                             }
 
                             when {
-                                // Released on a port → commit (detach already happened if needed)
+                                // Released on a port → commit
                                 upHit is HitResult.Port -> {
-                                    if (edgeToDetach != null && !detached) state.removeEdge(edgeToDetach.id)
                                     val to = EndPoint(upHit.nodeId, upHit.portId)
+                                    // Remove the old edge before committing so port is free for the new one
+                                    if (edgeToDetach != null && !detached) state.removeEdge(edgeToDetach.id)
                                     state.tryCommitConnection(to, onConnectionAttemptState)
                                 }
-                                // Quick tap (little movement) → switch to click-click mode, no detach
+                                // Quick tap → detach immediately, switch to click-click mode so user
+                                // can pick the new destination port with a second tap
                                 totalMovePx < tapThresholdPx -> {
+                                    if (edgeToDetach != null) state.removeEdge(edgeToDetach.id)
                                     state.startPendingConnection(
                                         sourceEnd,
                                         state.pendingConnection?.currentPointerWorld ?: worldPos,
                                         com.yasincidem.blockcanvas.ui.state.ConnectionMode.Click,
                                     )
                                 }
-                                // Dragged to empty space → cancel, restore edge if not yet detached
+                                // Dragged to empty space → cancel; if edge was detached, it stays removed
                                 else -> {
                                     state.clearPendingConnection()
                                 }
