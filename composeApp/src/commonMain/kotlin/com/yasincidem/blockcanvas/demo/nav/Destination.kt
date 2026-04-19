@@ -1,13 +1,16 @@
 package com.yasincidem.blockcanvas.demo.nav
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 sealed interface Destination {
-    data object Gallery : Destination
-    data object Basics : Destination
-    data object CustomNodes : Destination
-    data object Workflow : Destination
-    data object KnowledgeGraph : Destination
-    data object Rules : Destination
-    data object Serialization : Destination
-    data object Theming : Destination
-    data object Performance : Destination
+    @Serializable data object Gallery : Destination
+    @Serializable data object Basics : Destination
+    @Serializable data object CustomNodes : Destination
+    @Serializable data object Workflow : Destination
+    @Serializable data object KnowledgeGraph : Destination
+    @Serializable data object Rules : Destination
+    @Serializable data object Serialization : Destination
+    @Serializable data object Theming : Destination
+    @Serializable data object Performance : Destination
 }

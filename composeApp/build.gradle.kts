@@ -45,6 +45,7 @@ kotlin {
             implementation(libs.coil.compose)
             implementation(libs.coil.network.ktor)
             implementation(libs.ktor.client.core)
+            implementation(libs.jetbrains.navigation3.ui)
         }
         val desktopMain by getting {
             dependencies {
@@ -57,7 +58,7 @@ kotlin {
 
 android {
     namespace = "com.yasincidem.blockcanvas.demo"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.yasincidem.blockcanvas.demo"
