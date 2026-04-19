@@ -8,13 +8,7 @@ The project is focused on the primitives behind editors such as workflow builder
 
 ## Demo
 
-Demo video will live here once it is added to the repository.
-
-```md
-[demo.mp4](./docs/media/demo.mp4)
-```
-
-If you want to embed it later, replace this section with the final asset link or a GitHub-hosted video URL.
+[Watch the demo video](https://github.com/user-attachments/assets/f036c2f9-d507-4641-9b9e-193949a9b90d)
 
 ## Status
 
